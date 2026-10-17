@@ -15,21 +15,23 @@ def verify_snapshot(directory):
     directory = Path(directory)
     try:
         receipt_path = directory / "receipt.json"
-        if directory.is_symlink() or receipt_path.is_symlink():
+        if directory.is_symlink() or receipt_path.is_symlink() or receipt_path.stat().st_size > 1024 * 1024:
             raise ValueError
         receipt = json.loads(receipt_path.read_text())
-        if receipt["schema_version"] != 1 or not RUN_ID.fullmatch(receipt["run_id"]):
+        if receipt["schema_version"] not in (1, 2) or not RUN_ID.fullmatch(receipt["run_id"]):
             raise ValueError
-        if type(receipt["complete"]) is not bool or type(receipt["repositories"]) is not int:
+        if type(receipt["complete"]) is not bool or type(receipt["repositories"]) is not int or receipt["repositories"] < 0:
             raise ValueError
         if len(receipt["files"]) != 1 or receipt["files"][0]["name"] != "snapshot.tar.gz.age":
             raise ValueError
         entry = receipt["files"][0]
         payload = directory / entry["name"]
+        if type(entry["bytes"]) is not int or entry["bytes"] < 1:
+            raise ValueError
         if payload.is_symlink() or payload.stat().st_size != entry["bytes"] or sha256(payload) != entry["sha256"]:
             raise ValueError
         return receipt
-    except (OSError, ValueError, TypeError, KeyError):
+    except (OSError, ValueError, TypeError, KeyError, RecursionError):
         raise BackupError("snapshot integrity or receipt validation failed") from None
 
 

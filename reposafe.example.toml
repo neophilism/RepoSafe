@@ -21,3 +21,10 @@ required = true
 # Optional: dedicated encrypted local scratch volume, outside folders being backed up.
 #[runner]
 #work_dir = "/var/lib/reposafe/work"
+
+# Opt-in other data. Use consistent exports/snapshots, not live database files.
+#[[files]]
+#name = "documents"
+#path = "/srv/backup-input/documents"
+#exclude = ["*.tmp", "cache/**"]
+#maximum_bytes = 21474836480

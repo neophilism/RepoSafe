@@ -1,0 +1,32 @@
+[Unit]
+Description=RepoSafe encrypted daily backups
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=reposafe
+Group=reposafe
+WorkingDirectory=/opt/reposafe/current
+EnvironmentFile=/etc/reposafe/runtime.env
+Environment=RCLONE_CONFIG=/var/lib/reposafe/rclone.conf
+ExecStart=/opt/reposafe/venv/bin/python -m reposafe --config /etc/reposafe/reposafe.toml run --state-dir /var/lib/reposafe/state --output /var/lib/reposafe/backups
+UMask=0077
+StateDirectory=reposafe
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/reposafe
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TimeoutStartSec=5h
+StandardOutput=journal
+StandardError=journal

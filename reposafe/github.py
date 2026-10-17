@@ -70,7 +70,8 @@ class GitHub:
                 if repo["owner"]["login"].lower() not in owners:
                     continue
                 name = repo["full_name"]
-                if not FULL_NAME.fullmatch(name) or name.rsplit("/", 1)[1] in (".", ".."):
+                if (not FULL_NAME.fullmatch(name) or name.rsplit("/", 1)[1] in (".", "..") or
+                    name.split("/", 1)[0].lower() != repo["owner"]["login"].lower()):
                     raise ValueError
                 if type(repo["id"]) is not int or repo["id"] < 1:
                     raise ValueError

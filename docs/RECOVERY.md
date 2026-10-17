@@ -1,5 +1,24 @@
 # Recovery from an encrypted snapshot
 
+For current v2 snapshots, use offline constrained recovery:
+
+```sh
+python -m reposafe verify /recovery/RUN_ID
+python -m reposafe restore /recovery/RUN_ID \
+  --identity /offline/recovery.key --output /recovery/new-directory
+```
+
+Neither command needs GitHub, provider credentials or a config file. Supply
+`--trusted-sha256 DIGEST` obtained independently to anchor ciphertext provenance.
+Adjacent unsigned receipts establish matching bytes, not authenticity. Restore
+verifies every listed hash and rejects unsafe paths/links/special files/duplicates,
+excessive bytes/members and existing output paths. It removes new output on failure.
+Use `--allow-partial` deliberately and inspect failures/missing IDs in the manifest.
+See FORMAT.md for limits and INDEPENDENT_RUNNER.md for deployment.
+
+The steps below also cover manual v1 recovery. The constrained command refuses v1
+because those archives lack an inner content inventory.
+
 Use a clean recovery computer, not the machine suspected of compromise. Retrieve
 the chosen run from any surviving provider. Older dated runs survive upstream
 deletions; select a known-good date, not simply the latest available run.

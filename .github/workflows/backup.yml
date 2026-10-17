@@ -33,9 +33,11 @@ jobs:
         env:
           GITHUB_BACKUP_TOKEN: ${{ secrets.GITHUB_BACKUP_TOKEN }}
           RCLONE_CONFIG: ${{ runner.temp }}/reposafe-rclone.conf
-        run: python -m reposafe --config "$RUNNER_TEMP/reposafe.toml" run --output "$RUNNER_TEMP/reposafe-output"
+        # The bootstrap host is ephemeral; durable coverage tracking uses the independent host.
+        run: python -m reposafe --config "$RUNNER_TEMP/reposafe.toml" run --state-dir "$RUNNER_TEMP/reposafe-state" --output "$RUNNER_TEMP/reposafe-output"
       - name: Remove ephemeral runtime material
         if: always()
         run: |
           rm -f "$RUNNER_TEMP/reposafe-rclone.conf" "$RUNNER_TEMP/reposafe.toml"
           rm -rf "$RUNNER_TEMP/reposafe-output"
+          rm -rf "$RUNNER_TEMP/reposafe-state"

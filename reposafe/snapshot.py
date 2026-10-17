@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .common import BackupError, command, sha256, write_json
+from .sources import FileCollector
+from .format import content_inventory
 
 
 @dataclass(frozen=True)
@@ -16,6 +18,8 @@ class Capture:
     complete: bool
     repository_count: int
     failed_count: int
+    repository_ids: tuple[int, ...] = ()
+    missing_count: int = 0
 
 
 def git_environment(token, askpass):
@@ -42,8 +46,10 @@ def mirror(repo, destination, env, include_lfs):
     write_json(destination.parent / "repository.json", repo)
 
 
-def capture(config, github, output, *, mirror_fn=mirror):
+def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids=(), forbidden=()):
     inventory = github.inventory(config)
+    repository_ids = tuple(repo["id"] for repo in inventory)
+    missing = sorted(set(expected_repository_ids) - set(repository_ids))
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(8)
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -70,12 +76,23 @@ def capture(config, github, output, *, mirror_fn=mirror):
                 outcomes.append({"id": repo["id"], "full_name": repo["full_name"], "status": "complete"})
             except BackupError:
                 outcomes.append({"id": repo["id"], "full_name": repo["full_name"], "status": "failed"})
-        failed = sum(r["status"] != "complete" for r in outcomes)
+        sources = []
+        for source in config.files:
+            source_dir = payload / "files" / source.name
+            try:
+                evidence = FileCollector(source, forbidden=(output, root, *forbidden)).collect(source_dir)
+                sources.append({"name": source.name, "status": "complete", **evidence})
+            except BackupError:
+                sources.append({"name": source.name, "status": "failed"})
+        failed = sum(r["status"] != "complete" for r in outcomes) + sum(s["status"] != "complete" for s in sources)
+        complete = failed == 0 and not missing
         write_json(payload / "manifest.json", {
-            "schema_version": 1, "run_id": run_id, "complete": failed == 0,
+            "schema_version": 2, "run_id": run_id, "complete": complete,
             "include_lfs": config.include_lfs, "repositories": outcomes,
+            "sources": sources, "missing_repository_ids": missing,
             "coverage": "Git mirrors, LFS when enabled, repository metadata; see docs/COVERAGE.md",
         })
+        content_inventory(payload)
         archive = root / "snapshot.tar.gz"
         with tarfile.open(archive, "w:gz") as bundle:
             bundle.add(payload, arcname="snapshot", recursive=True)
@@ -85,11 +102,12 @@ def capture(config, github, output, *, mirror_fn=mirror):
             command(["age", "--encrypt", *recipients, "-o", ciphertext, archive])
             ciphertext.chmod(0o600)
             write_json(destination / "receipt.json", {
-                "schema_version": 1, "run_id": run_id, "complete": failed == 0,
+                "schema_version": 2, "run_id": run_id, "complete": complete,
                 "repositories": len(inventory), "failed": failed,
+                "missing_repositories": len(missing), "sources": len(sources),
                 "files": [{"name": ciphertext.name, "sha256": sha256(ciphertext), "bytes": ciphertext.stat().st_size}],
             })
         except BackupError:
             ciphertext.unlink(missing_ok=True)
             raise
-    return Capture(destination, run_id, failed == 0, len(inventory), failed)
+    return Capture(destination, run_id, complete, len(inventory), failed, repository_ids, len(missing))

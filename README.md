@@ -58,3 +58,26 @@ A GitHub compromise could therefore threaten those mutable copies. The hardened
 design moves collection off GitHub and adds independently administered immutable
 storage and offline copies. Merely adding providers does not force independent
 compromises if credentials or account recovery are shared.
+
+## Independent runner and offline recovery
+
+The [independent Linux runner](docs/INDEPENDENT_RUNNER.md) includes a daily systemd
+timer, exclusive run locking and durable coverage state. Previously observed IDs
+cannot silently disappear from a successful backup. Opt-in regular-file roots use
+`[[files]]`; see the example config and [format](docs/FORMAT.md).
+
+Restore v2 on a clean machine without source/provider access:
+
+```sh
+python -m reposafe restore /recovery/RUN_ID \
+  --identity /offline/recovery.key --output /recovery/new-directory
+```
+
+Supply an independently recorded digest with `--trusted-sha256` to anchor provenance.
+Restore checks every content hash, rejects unsafe entries and requires a new output
+directory. Local verify/restore need no config or GitHub token. Partial snapshots
+require `--allow-partial`.
+
+Immutable vaults, separate delivery hosts, signed witnessing and independent alarms
+remain later PRs. Activation needs runtime credentials and the public recipient
+of a recovery identity retained offline by the owner.
