@@ -66,7 +66,8 @@ def check_offline(path, key, state, policy, now, issues):
         digest = verify_bytes(raw, envelope, key, "offline-copy")
         report = json.loads(raw)
         verified = timestamp(report["verified_at"])
-        if report["schema_version"] != 1 or report["verified"] is not True or verified > now + timedelta(minutes=5):
+        captured = timestamp(report["captured_at"])
+        if report["schema_version"] != 1 or report["kind"] != "offline-copy" or report["verified"] is not True or verified > now + timedelta(minutes=5) or captured > verified:
             raise ValueError
         previous = state.get("offline")
         if previous and (verified < timestamp(previous["verified_at"]) or
@@ -74,7 +75,7 @@ def check_offline(path, key, state, policy, now, issues):
             issues.append("offline_evidence_rollback")
             return
         state["offline"] = {"verified_at": verified.isoformat(), "sha256": digest}
-        if now - verified > timedelta(days=policy.maximum_offline_days):
+        if now - min(verified, captured) > timedelta(days=policy.maximum_offline_days):
             issues.append("offline_copy_stale")
     except (BackupError, OSError, ValueError, TypeError, KeyError, RecursionError):
         issues.append("offline_evidence_invalid")

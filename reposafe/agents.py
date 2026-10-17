@@ -36,7 +36,8 @@ def catalog_receipt(catalog, collector_key):
 
 
 def deliver_agent(config, directory, destination_name, state_dir, collector_key, writer_key,
-                  *, transport=None, maximum_age_hours=48):
+                  *, transport=None, maximum_age_hours=48, clock=None):
+    clock = clock or (lambda: datetime.now(timezone.utc))
     if any(os.environ.get(name) for name in ("GITHUB_BACKUP_TOKEN", "GITHUB_APP_PRIVATE_KEY_FILE")):
         raise BackupError("delivery agent must not hold source credentials")
     selected = [d for d in config.destinations if d.name == destination_name]
@@ -65,7 +66,7 @@ def deliver_agent(config, directory, destination_name, state_dir, collector_key,
                 if precise.tzinfo is None or precise.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ") != receipt["run_id"][:16]:
                     raise BackupError("receipt capture time disagrees with run ID")
                 captured = precise.astimezone(timezone.utc)
-            now = datetime.now(timezone.utc)
+            now = clock()
             if captured > now + timedelta(minutes=5) or now - captured > timedelta(hours=maximum_age_hours):
                 raise BackupError("delivery queue item is stale or from a future clock")
             existing = state["runs"].get(receipt["run_id"])
@@ -87,7 +88,7 @@ def deliver_agent(config, directory, destination_name, state_dir, collector_key,
                 "collector_signature": json.loads(read_regular(stage / "receipt.sig.json", 4096)),
                 "collector_signature_b64": base64.b64encode(read_regular(stage / "receipt.sig.json", 4096)).decode(),
                 "receipt_sha256": digest, "verified": True, "evidence": result.evidence,
-                "completed_at": datetime.now(timezone.utc).isoformat()}
+                "completed_at": clock().isoformat()}
             final.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             with tempfile.TemporaryDirectory(prefix=".catalog-", dir=final.parent) as pending:
                 pending = Path(pending)

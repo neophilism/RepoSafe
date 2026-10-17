@@ -56,3 +56,15 @@ checks, signed offline-copy age checks and aggregate HTTPS alert delivery. Missi
 events and heartbeat-only claims never become success. Added hourly service/timer
 samples. The 86-test local suite passes with PostgreSQL required in CI. No real
 alert recipients/endpoints are configured or contacted by development.
+
+## Offline escape copies and safe retention proposals — PR #10 (H13/H14)
+
+Added clean-revision signed recovery-kit construction/verification, explicit software
+wheel/public-root enrollment, signed filesystem-UUID media enrollment, atomic fsynced
+offline generation export with complete read-back, and signed copy proofs. The monitor
+checks capture age as well as copy age. Added an independently anchored read-only
+retention planner with minimum surviving generations, live exact-version lock/legal-hold
+checks and user-supplied storage-rate forecasts. No delete executor is shipped.
+The local 95-test suite passes (PostgreSQL required in CI). See OFFLINE.md/RETENTION.md;
+physical media, OS/runtime compatibility and disconnected clean-machine recovery
+remain actual deployment acceptance, not claims from fixtures.

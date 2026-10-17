@@ -36,7 +36,7 @@ class FakeVault:
         key = kwargs["Key"]
         if key not in self.objects:
             raise NotFound()
-        return {"VersionId": self.objects[key][0]}
+        return {"VersionId": self.objects[key][0], "ContentLength": len(self.objects[key][1])}
 
     def put_object(self, **kwargs):
         key = kwargs["Key"]
@@ -57,6 +57,9 @@ class FakeVault:
 
     def get_object_retention(self, **kwargs):
         return {"Retention": {"Mode": self.mode, "RetainUntilDate": self.now + timedelta(days=self.days)}}
+
+    def get_object_legal_hold(self, **kwargs):
+        return {"LegalHold": {"Status": "OFF"}}
 
 
 class VaultTests(unittest.TestCase):
@@ -128,3 +131,12 @@ class VaultTests(unittest.TestCase):
         allowed["namePrefix"] = ""
         with self.assertRaises(BackupError):
             check_b2_capabilities(destination, result)
+
+    def test_read_only_maintenance_audits_exact_version_and_legal_hold_without_extending_retention(self):
+        evidence = self.vault.deliver(self.root, self.destination, self.run_id)
+        record = evidence["objects"][0]
+        value = self.vault.audit_version(record)
+        self.assertEqual("OFF", value["legal_hold"])
+        self.assertEqual("COMPLIANCE", value["mode"])
+        with self.assertRaises(BackupError):
+            self.vault.audit_version({**record, "bytes": record["bytes"] + 1})
