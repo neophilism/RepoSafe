@@ -30,3 +30,5 @@ CapabilityBoundingSet=
 TimeoutStartSec=5h
 StandardOutput=journal
 StandardError=journal
+MemoryMax=2G
+TasksMax=128

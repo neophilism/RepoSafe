@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll RepoSafe events feed
+
+[Timer]
+OnBootSec=2m
+OnUnitInactiveSec=15m
+Unit=reposafe-feed-monitor.service
+
+[Install]
+WantedBy=timers.target

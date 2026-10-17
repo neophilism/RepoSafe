@@ -63,3 +63,7 @@ An independent external monitor must detect missed/stale/failed runs even if thi
 host disappears. H12 adds it; the timer template alone does not provide alerting.
 After independent production acceptance, disable the bootstrap GitHub schedule to
 avoid duplicate storage/transfers. Preserve offline keys, tools and trusted receipts.
+
+The combined runner is the simple independent-host path. For one credential boundary
+per destination, signed witnessing, feeds and independent alarms, use ACTIVATION.md
+and PROVENANCE.md. Install only fixed reviewed releases from RELEASE.md.

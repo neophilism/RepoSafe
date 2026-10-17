@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll RepoSafe offline-proofs feed
+
+[Timer]
+OnBootSec=2m
+OnUnitInactiveSec=15m
+Unit=reposafe-feed-offline.service
+
+[Install]
+WantedBy=timers.target

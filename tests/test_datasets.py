@@ -128,6 +128,14 @@ class DatasetTests(unittest.TestCase):
 
 
 class CommandBudgetTests(unittest.TestCase):
+    def test_staging_budget_aborts_running_tool_before_completion(self):
+        from reposafe.common import command_guard, storage_check
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            with command_guard(lambda: storage_check(root, 1024, 0)), self.assertRaisesRegex(BackupError, "staging"):
+                command(["python3", "-c", "import pathlib,sys,time;pathlib.Path(sys.argv[1]).write_bytes(b'x'*4096);time.sleep(20)",
+                         root / "tool-output"], timeout=2)
+
     def test_streamed_output_is_private_and_bounded(self):
         with tempfile.TemporaryDirectory() as raw:
             output = Path(raw) / "dump"

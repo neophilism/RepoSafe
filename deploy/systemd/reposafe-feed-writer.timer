@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll RepoSafe captures feed
+
+[Timer]
+OnBootSec=2m
+OnUnitInactiveSec=15m
+Unit=reposafe-feed-writer.service
+
+[Install]
+WantedBy=timers.target

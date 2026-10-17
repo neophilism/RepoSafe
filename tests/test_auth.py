@@ -16,6 +16,15 @@ from reposafe.inventory import registry_ids
 
 
 class AuthTests(unittest.TestCase):
+    def test_app_private_key_cannot_be_used_from_a_write_privileged_installation(self):
+        auth = InstallationAuth("42", "/unused", ("contents", "metadata"))
+        client = Mock()
+        client.pages.return_value = [{"id": 1, "account": {"login": "neophilism"}, "repository_selection": "all",
+                                      "permissions": {"contents": "write", "metadata": "read"}}]
+        with patch.object(auth, "app_client", return_value=client), self.assertRaisesRegex(BackupError, "read-only"):
+            list(auth.repositories(Config(("neophilism",), ())))
+        client.request.assert_not_called()
+
     def test_jwt_is_signed_and_has_short_expiry(self):
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         pem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,

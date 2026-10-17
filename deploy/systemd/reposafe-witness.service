@@ -9,11 +9,11 @@ User=reposafe-witness
 Group=reposafe-witness
 WorkingDirectory=/opt/reposafe/current
 EnvironmentFile=/etc/reposafe/witness.env
-ExecStart=/opt/reposafe/venv/bin/reposafe --config /etc/reposafe/witness.toml witness-queue --inbox /srv/reposafe-catalogs --writer-key aws=/etc/reposafe/pins/aws --writer-key b2=/etc/reposafe/pins/b2 --writer-key drive=/etc/reposafe/pins/drive --writer-key dropbox=/etc/reposafe/pins/dropbox --collector-key /etc/reposafe/pins/collector --state-dir /var/lib/reposafe-witness/state --signing-key /etc/reposafe/keys/witness.pem --minimum-immutable 2
+ExecStart=/opt/reposafe/venv/bin/reposafe --config /etc/reposafe/witness.toml witness-queue --inbox /var/lib/reposafe-witness/inbox --writer-key aws=/etc/reposafe/pins/aws --writer-key b2=/etc/reposafe/pins/b2 --writer-key drive=/etc/reposafe/pins/drive --writer-key dropbox=/etc/reposafe/pins/dropbox --collector-key /etc/reposafe/pins/collector --state-dir /var/lib/reposafe-witness/state --signing-key /etc/reposafe/keys/witness.pem --minimum-immutable 2
 UMask=0077
 StateDirectory=reposafe-witness
 StateDirectoryMode=0700
-ReadOnlyPaths=/srv/reposafe-catalogs
+ReadOnlyPaths=/var/lib/reposafe-witness/inbox
 ReadWritePaths=/var/lib/reposafe-witness
 ProtectSystem=strict
 ProtectHome=true
@@ -29,3 +29,5 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 CapabilityBoundingSet=
 TimeoutStartSec=5h
 KillMode=control-group
+MemoryMax=2G
+TasksMax=128

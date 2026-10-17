@@ -11,6 +11,7 @@ from pathlib import Path
 from .common import BackupError
 from .delivery import deliver_all, delivery_succeeded
 from .snapshot import capture
+from .signing import read_regular
 
 
 @contextmanager
@@ -45,9 +46,7 @@ def read_state(root):
     if not path.exists():
         return {"schema_version": 1, "observed_repository_ids": [], "last_success": None}
     try:
-        if path.stat().st_mode & 0o077:
-            raise ValueError
-        state = json.loads(path.read_text())
+        state = json.loads(read_regular(path, 16 * 1024 ** 2, private=True))
         if state["schema_version"] != 1 or not isinstance(state["observed_repository_ids"], list):
             raise ValueError
         if any(type(i) is not int or i < 1 for i in state["observed_repository_ids"]):
@@ -99,6 +98,8 @@ def execute(config, github, output, state_dir, *, capture_fn=capture, deliver_fn
 def collect_only(config, github, output, state_dir):
     if not os.environ.get("REPOSAFE_COLLECTOR_SIGNING_KEY_FILE"):
         raise BackupError("isolated collection requires a collector signing key")
+    if os.environ.get("RCLONE_CONFIG") or any(d.credential_prefix and os.environ.get(d.credential_prefix + "_ACCESS_KEY_ID") for d in config.destinations):
+        raise BackupError("isolated collector must not hold destination credentials")
     with run_lock(state_dir) as root:
         state = read_state(root)
         result = capture(config, github, output, expected_repository_ids=state["observed_repository_ids"], forbidden=(root,))

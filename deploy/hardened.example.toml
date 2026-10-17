@@ -1,0 +1,56 @@
+# Copy privately to each role host, selecting the role's work path and credentials.
+# No cloud resource is created by this template. Account/budget/retention approval
+# and real runtime secrets are required before activation.
+[github]
+owners = ["neophilism"]
+minimum_repositories = 1
+required_repositories = ["neophilism/RepoSafe"]
+include_lfs = true
+# Enable only metadata classes with independently reconciled grants/coverage.
+metadata = ["collaboration", "releases", "settings"]
+wiki = false
+allow_selected_repositories = false
+# registry = "/etc/reposafe/expected-inventory.json"
+# registry_sha256 = "INDEPENDENTLY_REVIEWED_SHA256"
+
+[encryption]
+recipients = ["REPLACE_WITH_OFFLINE_AGE_PUBLIC_RECIPIENT"]
+
+[runner]
+work_dir = "/var/lib/reposafe-collector/work"
+chunk_bytes = 67108864
+maximum_snapshot_bytes = 107374182400
+minimum_free_bytes = 1073741824
+
+[[destinations]]
+name = "drive"
+remote = "gdrive:RepoSafe"
+required = true
+
+[[destinations]]
+name = "dropbox"
+remote = "dropbox:RepoSafe"
+required = true
+
+[[destinations]]
+name = "aws"
+kind = "s3"
+bucket = "replace-with-approved-aws-bucket"
+prefix = "reposafe"
+region = "us-east-1"
+expected_account = "000000000000"
+credential_prefix = "REPOSAFE_AWS"
+retention_days = 90
+required = true
+
+[[destinations]]
+name = "b2"
+kind = "b2"
+bucket = "replace-with-approved-b2-bucket"
+prefix = "reposafe"
+region = "us-west-001"
+endpoint = "https://s3.us-west-001.backblazeb2.com"
+expected_account = "REPLACE_WITH_APPROVED_B2_ACCOUNT_ID"
+credential_prefix = "REPOSAFE_B2"
+retention_days = 365
+required = true

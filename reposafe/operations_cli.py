@@ -17,7 +17,7 @@ def register(commands):
     check.add_argument("--minimum-retention-hours", type=int, default=24)
     check.add_argument("--maximum-offline-days", type=int, default=7)
     check.add_argument("--without-offline", action="store_true", help="explicitly waive offline-copy health checks")
-    check.add_argument("--offline-report")
+    check.add_argument("--offline-report", help="one signed copy.json or an enrolled inbox of generation subdirectories")
     check.add_argument("--offline-key")
     check.add_argument("--notify", action="store_true", help="POST aggregate health to REPOSAFE_ALERT_URL, including failures")
     kit = commands.add_parser("kit-build", help="bundle a clean reviewed source revision, tools, wheels and public roots")
@@ -66,10 +66,63 @@ def register(commands):
     plan.add_argument("--daily-bytes", type=int)
     plan.add_argument("--without-live-audit", action="store_true", help="cost/keep-only report; no eligible versions")
     plan.add_argument("--output", required=True)
+    check = commands.add_parser("doctor", help="secret-free role preflight; live checks run only with explicit --live")
+    check.add_argument("--role", choices=("collector", "writer", "witness", "monitor", "recovery"), required=True)
+    check.add_argument("--destination")
+    check.add_argument("--collector-key")
+    check.add_argument("--writer-key", action="append", default=[])
+    check.add_argument("--witness-key")
+    check.add_argument("--signing-key")
+    check.add_argument("--state-dir")
+    check.add_argument("--output-dir")
+    check.add_argument("--live", action="store_true", help="inspect real source/vault APIs using supplied role credentials")
+    inventory = commands.add_parser("runtime-inventory", help="record installed dependency versions and executable hashes")
+    inventory.add_argument("--output", required=True)
+    relay = commands.add_parser("queue-pull", help="poll an enrolled read-only SFTP feed with pinned host keys")
+    relay.add_argument("--remote", required=True)
+    relay.add_argument("--inbox", required=True)
+    relay.add_argument("--rclone-config", required=True)
+    relay.add_argument("--known-hosts", required=True)
+    relay.add_argument("--kind", choices=("captures", "catalogs", "events", "offline-proofs"), required=True)
+    relay.add_argument("--maximum-bytes", type=int, default=500 * 1024 ** 3)
+    acceptance = commands.add_parser("acceptance-template", help="create a private production checklist with every item pending")
+    acceptance.add_argument("--output", required=True)
+    verify = commands.add_parser("acceptance-verify", help="verify signed owner attestation, witness and evidence hashes")
+    verify.add_argument("document")
+    verify.add_argument("--owner-key", required=True)
+    verify.add_argument("--witness-key", required=True)
 
 
 def dispatch(args):
     from .security_cli import mappings
+    if args.action == "doctor":
+        from .config import load
+        from .readiness import doctor
+        config = None if args.role in ("monitor", "recovery") else load(args.config)
+        report = doctor(config, args.role, destination=args.destination, collector_key=args.collector_key,
+            writer_keys=mappings(args.writer_key), witness_key=args.witness_key, signing_key=args.signing_key,
+            state_dir=args.state_dir, output_dir=args.output_dir, live=args.live)
+        print(json.dumps(report, sort_keys=True))
+        return 0 if report["local_ready"] else 1
+    if args.action == "runtime-inventory":
+        from .readiness import inventory
+        from .common import write_json
+        write_json(args.output, inventory())
+        print("dependency versions and tool executable hashes recorded")
+        return 0
+    if args.action == "queue-pull":
+        from .relay import pull_queue
+        print(json.dumps(pull_queue(args.remote, args.inbox, args.rclone_config, args.known_hosts, args.kind, args.maximum_bytes), sort_keys=True))
+        return 0
+    if args.action == "acceptance-template":
+        from .acceptance import template
+        template(args.output)
+        print("production acceptance checklist created; all checks pending")
+        return 0
+    if args.action == "acceptance-verify":
+        from .acceptance import verify_acceptance
+        print(json.dumps(verify_acceptance(args.document, args.owner_key, args.witness_key), sort_keys=True))
+        return 0
     if args.action == "kit-build":
         from .kit import build_kit
         manifest = build_kit(args.source_root, args.revision, args.output, args.signing_key,

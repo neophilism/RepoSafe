@@ -1,0 +1,84 @@
+{
+  "checked_at": "2026-10-17T13:10:54.074806+00:00",
+  "kind": "pinned-dependency-advisory-check",
+  "reports": {
+    "build": {
+      "dependencies": [
+        {
+          "name": "packaging",
+          "version": "26.3",
+          "vulns": []
+        },
+        {
+          "name": "wheel",
+          "version": "0.48.0",
+          "vulns": []
+        },
+        {
+          "name": "setuptools",
+          "version": "84.0.0",
+          "vulns": []
+        }
+      ],
+      "findings": 0
+    },
+    "runtime": {
+      "dependencies": [
+        {
+          "name": "boto3",
+          "version": "1.43.114",
+          "vulns": []
+        },
+        {
+          "name": "botocore",
+          "version": "1.43.114",
+          "vulns": []
+        },
+        {
+          "name": "cffi",
+          "version": "2.1.1",
+          "vulns": []
+        },
+        {
+          "name": "cryptography",
+          "version": "50.0.2",
+          "vulns": []
+        },
+        {
+          "name": "jmespath",
+          "version": "1.1.0",
+          "vulns": []
+        },
+        {
+          "name": "pycparser",
+          "version": "3.11",
+          "vulns": []
+        },
+        {
+          "name": "python-dateutil",
+          "version": "2.9.0.post0",
+          "vulns": []
+        },
+        {
+          "name": "s3transfer",
+          "version": "0.19.2",
+          "vulns": []
+        },
+        {
+          "name": "six",
+          "version": "1.17.0",
+          "vulns": []
+        },
+        {
+          "name": "urllib3",
+          "version": "2.8.0",
+          "vulns": []
+        }
+      ],
+      "findings": 0
+    }
+  },
+  "schema_version": 1,
+  "scope": "known advisories at this check; not a complete security audit or perpetual guarantee",
+  "tool": "pip-audit"
+}

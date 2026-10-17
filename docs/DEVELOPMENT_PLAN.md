@@ -12,8 +12,8 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | --- | --- | --- | --- | --- |
 | Bootstrap | B1 | Empty repo | Encrypted GitHub mirrors and explicit coverage | PR #1 merged |
 | Bootstrap | B2 | B1 | Daily Drive/Dropbox copy and verification | PR #2 merged |
-| Design | H0 | B2 | Technical architecture, full plan, decisions and acceptance boundaries | This documentation PR |
-| Foundation | H1 | H0 | Independent runner, source interface/files, durable coverage state, safe offline recovery | PR #4 |
+| Design | H0 | B2 | Technical architecture, full plan, decisions and acceptance boundaries | PR #3 merged |
+| Foundation | H1 | H0 | Independent runner, source interface/files, durable coverage state, safe offline recovery | PR #4 merged |
 | Source identity | H2 | H1 | GitHub App tokens and independently reconciled owner inventory | Implemented in PR #5; live acceptance pending |
 | Git fidelity | H3 | H2 | Ref maps, LFS validation, submodule/wikis and repository lifecycle handling | Implemented in PR #5; live acceptance pending |
 | Metadata | H4 | H3 | Issues/PR/review/comment/label/milestone exporters | Implemented in PR #5; live acceptance pending |
@@ -27,8 +27,8 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | Operations | H12 | H6, H7, H9 | Independent freshness/retention monitoring and failure alerting | Implemented in PR #9; independent endpoint/host acceptance pending |
 | Offline | H13 | H9, H11 | Rotated offline export, complete recovery kit and media verification | Implemented in PR #10; physical rotation/clean-machine acceptance pending |
 | Retention | H14 | H9, H11, H12 | Separately authorized retention maintenance and budget reporting | Read-only anchored planner in PR #10; no deletion executor or production expiration authorized |
-| Assurance | H15 | H5, H7–H14 | Restore drills, chaos/security verification and recovery benchmarks | Planned |
-| Activation | H16 | H15 | Real-account daily production rollout and signed acceptance evidence | Planned |
+| Assurance | H15 | H5, H7–H14 | Restore drills, chaos/security verification and recovery benchmarks | Implemented qualification in PR #11; live cloud/physical/account drills remain acceptance |
+| Activation | H16 | H15 | Real-account daily production rollout and signed acceptance evidence | Tooling/runbook in PR #11; actual activation waits for runtime inputs and owner acceptance |
 
 Independent workstreams may be implemented in any dependency-valid order. No stage
 may represent planned defenses as already deployed. The owner has requested continuation through the remaining implementation plan.
@@ -60,7 +60,7 @@ Validation: real rclone local transport, same-size corruption, retry idempotence
 provider outage, receipt ordering, exclusion of unexpected plaintext. Acceptance:
 18 tests and GitHub CI passed; PR #2 merged. Real Drive/Dropbox OAuth is not tested.
 
-## H0 — architectural baseline (this PR)
+## H0 — architectural baseline (PR #3 completed)
 
 Write architecture first, then this full dependency/validation plan. Record decisions
 in ADRs and the threat model, including mutable-vs-immutable storage, key custody,
@@ -68,7 +68,7 @@ credential compromise, data scope and no-spending deployment constraints. Link f
 README. Acceptance: design, operational boundaries and follow-on work are independently
 understandable without ChatGPT memory; basic implementation remains test-green.
 
-## H1 — hardened foundation (next PR)
+## H1 — hardened foundation (PR #4 completed)
 
 * Introduce explicit file-source specifications and a collector interface without
   executing shell hooks. Copy regular files only, reject links/devices, check for

@@ -142,6 +142,7 @@ class ObjectVault:
             raise BackupError("vault returned no durable object version ID")
         response = self.client.get_object(Bucket=self.destination.bucket, Key=key, VersionId=version, **self.owner)
         if response.get("VersionId", version) != version or response.get("ContentLength") != expected_size:
+            response["Body"].close()
             raise BackupError("vault read-back version/size mismatch")
         body, digest, total = response["Body"], hashlib.sha256(), 0
         try:
@@ -280,6 +281,7 @@ class ObjectVault:
                 seen.add(name)
                 response = self.client.get_object(Bucket=self.destination.bucket, Key=key, VersionId=version, **self.owner)
                 if response.get("VersionId", version) != version:
+                    response["Body"].close()
                     raise BackupError("vault returned the wrong recovery version")
                 body, total, digest = response["Body"], 0, hashlib.sha256()
                 try:

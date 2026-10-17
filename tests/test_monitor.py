@@ -104,6 +104,13 @@ class MonitorTests(unittest.TestCase):
             sign_file(path, self.key, path.with_name("copy.sig.json"), "offline-copy")
         report(self.now)
         self.assertTrue(self.check(offline_report=path, offline_key=self.public)["healthy"])
+        inbox = self.root / "offline-inbox"
+        generation = inbox / "generation"
+        generation.mkdir(parents=True)
+        import shutil
+        for name in ("copy.json", "copy.sig.json"):
+            shutil.copyfile(self.root / name, generation / name)
+        self.assertTrue(self.check(offline_report=inbox, offline_key=self.public)["healthy"])
         report(self.now - timedelta(days=1))
         self.assertIn("offline_evidence_rollback", self.check(offline_report=path, offline_key=self.public)["issues"])
 

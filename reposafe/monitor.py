@@ -61,20 +61,36 @@ def check_offline(path, key, state, policy, now, issues):
         issues.append("offline_evidence_missing")
         return
     try:
-        raw = read_regular(path, 16 * 1024 ** 2)
-        envelope = json.loads(read_regular(Path(path).with_name("copy.sig.json"), 4096))
-        digest = verify_bytes(raw, envelope, key, "offline-copy")
-        report = json.loads(raw)
-        verified = timestamp(report["verified_at"])
-        captured = timestamp(report["captured_at"])
-        if report["schema_version"] != 1 or report["kind"] != "offline-copy" or report["verified"] is not True or verified > now + timedelta(minutes=5) or captured > verified:
-            raise ValueError
+        root, paths = Path(path), []
+        if root.is_dir() and not root.is_symlink():
+            for index, directory in enumerate(root.iterdir()):
+                if index >= 10000:
+                    raise ValueError
+                if directory.is_dir() and not directory.is_symlink() and (directory / "copy.json").is_file():
+                    paths.append(directory / "copy.json")
+        else:
+            paths = [root]
+        candidates = []
+        for path in paths:
+            raw = read_regular(path, 16 * 1024 ** 2)
+            envelope = json.loads(read_regular(path.with_name("copy.sig.json"), 4096))
+            digest = verify_bytes(raw, envelope, key, "offline-copy")
+            report = json.loads(raw)
+            verified, captured = timestamp(report["verified_at"]), timestamp(report["captured_at"])
+            if report["schema_version"] != 1 or report["kind"] != "offline-copy" or report["verified"] is not True or verified > now + timedelta(minutes=5) or captured > verified:
+                raise ValueError
+            candidates.append((captured, verified, digest))
+        if not candidates:
+            issues.append("offline_evidence_missing")
+            return
+        captured, verified, digest = max(candidates)
         previous = state.get("offline")
         if previous and (verified < timestamp(previous["verified_at"]) or
+                         previous.get("captured_at") and captured < timestamp(previous["captured_at"]) or
                          verified == timestamp(previous["verified_at"]) and digest != previous["sha256"]):
             issues.append("offline_evidence_rollback")
             return
-        state["offline"] = {"verified_at": verified.isoformat(), "sha256": digest}
+        state["offline"] = {"verified_at": verified.isoformat(), "captured_at": captured.isoformat(), "sha256": digest}
         if now - min(verified, captured) > timedelta(days=policy.maximum_offline_days):
             issues.append("offline_copy_stale")
     except (BackupError, OSError, ValueError, TypeError, KeyError, RecursionError):
@@ -160,7 +176,11 @@ def monitor(inbox, witness_key, state_dir, policy, *, offline_report=None, offli
 
 
 def notify(report, url, *, opener=None):
-    parsed = urlsplit(url)
+    try:
+        parsed = urlsplit(url)
+        parsed.port
+    except (ValueError, TypeError):
+        raise BackupError("invalid operator-configured alert URL") from None
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise BackupError("alert endpoint must be operator-configured HTTPS without credentials in userinfo")
     request = urllib.request.Request(url, data=json.dumps(report, sort_keys=True).encode(),

@@ -15,7 +15,7 @@ from .signing import public_key, read_regular, sign_file, verify_bytes
 
 TOOLS = {"age", "age-keygen", "git", "git-lfs", "rclone", "python", "os-image"}
 REQUIRED_TOOLS = TOOLS - {"os-image"}
-WHEEL_NAMES = {"cryptography", "boto3", "botocore", "cffi", "pycparser", "jmespath", "s3transfer", "python_dateutil", "six", "urllib3"}
+WHEEL_NAMES = {"cryptography", "boto3", "botocore", "cffi", "pycparser", "jmespath", "s3transfer", "python_dateutil", "six", "urllib3", "setuptools", "wheel", "packaging"}
 
 
 def fsync_tree(root):
@@ -93,7 +93,7 @@ def build_kit(source_root, revision, output, signing_key, public_roots, *, tools
         raise BackupError("kit source checkout does not match the reviewed revision")
     command([*git, "diff", "--exit-code", "--quiet", "HEAD", "--"], env=env)
     paths = command([*git, "ls-files", "-z"], env=env).decode().split("\0")
-    selected = [name for name in paths if name and (name in ("README.md", "pyproject.toml") or
+    selected = [name for name in paths if name and (name in ("README.md", "pyproject.toml", "scripts/qualify_local.py") or
         name.startswith(("reposafe/", "tests/")) and name.endswith(".py") or
         name.startswith("docs/") and name.endswith(".md") or name.startswith("requirements") and name.endswith(".lock"))]
     if not {"reposafe/__init__.py", "pyproject.toml", "README.md"} <= set(selected) or not public_roots:

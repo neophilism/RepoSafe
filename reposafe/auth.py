@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .common import BackupError
 from .github import GitHub
+from .signing import read_regular
 
 
 def encoded(value):
@@ -43,9 +44,7 @@ class InstallationAuth:
 
     def app_client(self):
         try:
-            if self.key_path.is_symlink() or self.key_path.stat().st_mode & 0o077:
-                raise ValueError
-            return self.factory(app_jwt(self.app_id, self.key_path.read_bytes(), now=self.clock()))
+            return self.factory(app_jwt(self.app_id, read_regular(self.key_path, 65536, private=True), now=self.clock()))
         except (OSError, ValueError):
             raise BackupError("GitHub App private key must be a private regular file") from None
 
@@ -78,6 +77,9 @@ class InstallationAuth:
                     raise ValueError
                 if installation.get("repository_selection") != "all" and not config.allow_selected_repositories:
                     raise BackupError("selected-repository installation cannot establish owner-wide coverage")
+                privileges = installation.get("permissions")
+                if not isinstance(privileges, dict) or any(value not in ("read", "none") for value in privileges.values()):
+                    raise BackupError("source GitHub App installation must have read-only permissions")
                 self.installations[owner] = installation
                 found.add(owner)
                 client = self.factory(self.installation_token(installation))

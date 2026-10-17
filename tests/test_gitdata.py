@@ -33,3 +33,12 @@ class GitEvidenceTests(unittest.TestCase):
                 verify_restored(mirror, result)
             with self.assertRaises(BackupError):
                 evidence(mirror, None, lfs=True)
+
+    def test_offline_mirror_cannot_consult_external_object_storage(self):
+        with tempfile.TemporaryDirectory() as raw:
+            mirror = Path(raw) / "mirror.git"
+            command(["git", "init", "--bare", mirror])
+            result = evidence(mirror, None, lfs=False)
+            (mirror / "objects/info/alternates").write_text("/outside/backup\n")
+            with self.assertRaisesRegex(BackupError, "external"):
+                verify_restored(mirror, result)

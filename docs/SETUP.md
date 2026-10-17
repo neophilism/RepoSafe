@@ -17,8 +17,10 @@ Install Git, Git LFS, age and rclone from their official package sources.
 Run `rclone config` interactively on a trusted computer:
 
 * Create a Google Drive remote named `gdrive`, restricted to a dedicated backup
-  folder. Prefer an OAuth client you control and `drive.file` scope where it fits
+  folder. Use an OAuth client you control and `drive.file` scope where it fits
   your setup; verify rclone can create, list and download its own backup files.
+  Rclone documents retirement of its shared Drive client during 2026; use your own
+  client and confirm consent/publishing status permits durable refresh tokens.
 * Create a Dropbox remote named `dropbox`. Prefer a dedicated App Folder app with
   only the metadata/content read/write permissions rclone requires. Complete its
   OAuth flow with offline refresh support.
@@ -74,3 +76,7 @@ fails. Success requires the capture and every required destination to succeed.
 `deliver DIRECTORY` retries an existing encrypted snapshot without recapturing.
 Routine jobs never delete old remote snapshots. Storage therefore grows until a
 separate, deliberately authorized retention mechanism is configured.
+
+For compartmentalized production, use ACTIVATION.md instead of keeping every writer
+credential on one host. This bootstrap remains intentionally available as a simple
+starting path.

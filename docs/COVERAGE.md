@@ -1,6 +1,6 @@
 # Backup coverage
 
-| Data | Initial implementation | Recovery boundary |
+| Data | Implemented capture | Recovery boundary |
 | --- | --- | --- |
 | Public and private repository Git history | All refs advertised to an authenticated mirror clone | Only repositories visible to the configured token; owner filters apply |
 | Branches, tags, reachable objects | Bare mirror, checked with `git fsck --full --strict` | Deleted or unreachable upstream history predating the first backup cannot be recovered |

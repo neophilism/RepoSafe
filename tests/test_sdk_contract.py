@@ -15,11 +15,12 @@ class SDKContractTests(unittest.TestCase):
             "GetBucketVersioning": {"Bucket": "fixture-bucket", **owner},
             "GetPublicAccessBlock": {"Bucket": "fixture-bucket", **owner},
             "GetObjectLockConfiguration": {"Bucket": "fixture-bucket", **owner},
-            "HeadObject": {"Bucket": "fixture-bucket", "Key": "key", **owner},
+            "HeadObject": {"Bucket": "fixture-bucket", "Key": "key", "VersionId": "version", **owner},
             "PutObject": {"Bucket": "fixture-bucket", "Key": "key", "IfNoneMatch": "*",
                           "Body": io.BytesIO(b"data"), "ContentMD5": "fixture", **owner},
             "GetObject": {"Bucket": "fixture-bucket", "Key": "key", "VersionId": "version", **owner},
             "GetObjectRetention": {"Bucket": "fixture-bucket", "Key": "key", "VersionId": "version", **owner},
+            "GetObjectLegalHold": {"Bucket": "fixture-bucket", "Key": "key", "VersionId": "version", **owner},
         }
         for operation, values in examples.items():
             with self.subTest(operation=operation):

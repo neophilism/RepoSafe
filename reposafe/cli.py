@@ -39,6 +39,7 @@ def main(argv=None):
     recovery.add_argument("--trusted-sha256")
     recovery.add_argument("--collector-key", help="independently pinned collector public key or rotation ring")
     recovery.add_argument("--allow-partial", action="store_true")
+    recovery.add_argument("--content-only", action="store_true", help="explicitly defer Git/database structure checks")
     recovery.add_argument("--maximum-bytes", type=int, default=100 * 1024 ** 3)
     recovery.add_argument("--maximum-members", type=int, default=1_000_000)
     args = parser.parse_args(argv)
@@ -52,7 +53,7 @@ def main(argv=None):
             return handled
         if args.action == "restore":
             manifest = restore(args.directory, args.identity, args.output,
-                               trusted_sha256=args.trusted_sha256, collector_key=args.collector_key, allow_partial=args.allow_partial,
+                               trusted_sha256=args.trusted_sha256, collector_key=args.collector_key, allow_partial=args.allow_partial, content_only=args.content_only,
                                maximum_bytes=args.maximum_bytes, maximum_members=args.maximum_members)
             print(f"restored and content verified; complete={manifest['complete']}; provenance={'pinned signature or digest' if args.trusted_sha256 or args.collector_key else 'not independently authenticated'}")
             return 0

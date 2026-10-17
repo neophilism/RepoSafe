@@ -5,11 +5,43 @@ import os
 import shutil
 import tarfile
 import tempfile
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 from .common import BackupError, command, sha256
 from .delivery import verify_snapshot
 from .format import CONTENT_MANIFEST, SHA256, safe_relative
+from .signing import read_regular
+
+
+def verify_applications(root):
+    """Offline structure checks; no checkout, hooks, network or database target."""
+    from .gitdata import verify_restored
+    counts = {"git_mirrors": 0, "sqlite_databases": 0, "postgres_archive_catalogs": 0}
+    try:
+        for path in (root / "repositories").glob("**/git-evidence.json"):
+            evidence = json.loads(read_regular(path, 16 * 1024 ** 2))
+            verify_restored(path.parent / "mirror.git", evidence)
+            counts["git_mirrors"] += 1
+        for path in (root / "datasets").glob("*/dataset.json"):
+            dataset = json.loads(read_regular(path, 1024 ** 2))
+            if dataset["kind"] == "sqlite":
+                with closing(sqlite3.connect((path.parent / "database.sqlite").as_uri() + "?mode=ro&immutable=1", uri=True)) as database:
+                    database.enable_load_extension(False)
+                    database.execute("PRAGMA trusted_schema=OFF")
+                    database.execute("PRAGMA query_only=ON")
+                    if database.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+                        raise BackupError("restored SQLite integrity check failed")
+                counts["sqlite_databases"] += 1
+            elif dataset["kind"] == "postgres":
+                command(["pg_restore", "--list", path.parent / "database.dump"])
+                counts["postgres_archive_catalogs"] += 1
+        return counts
+    except BackupError:
+        raise
+    except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
+        raise BackupError("restored Git/database evidence validation failed") from None
 
 
 def extract_safely(archive, output, *, maximum_bytes=100 * 1024 ** 3, maximum_members=1_000_000):
@@ -35,6 +67,8 @@ def extract_safely(archive, output, *, maximum_bytes=100 * 1024 ** 3, maximum_me
                 size += member.size
                 if size > maximum_bytes:
                     raise BackupError("archive exceeds extraction byte budget")
+                if shutil.disk_usage(output).free < member.size + 16 * 1024 ** 2:
+                    raise BackupError("insufficient free storage for archive member")
                 target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
                 with source.extractfile(member) as incoming, target.open("xb") as outgoing:
                     os.chmod(target, 0o600)
@@ -81,9 +115,11 @@ def verify_contents(root, *, run_id):
         raise BackupError("restored payload content verification failed") from None
 
 
-def restore(directory, identity, output, *, trusted_sha256=None, collector_key=None, allow_partial=False,
+def restore(directory, identity, output, *, trusted_sha256=None, collector_key=None, allow_partial=False, content_only=False,
             maximum_bytes=100 * 1024 ** 3, maximum_members=1_000_000):
-    if type(maximum_bytes) is not int or maximum_bytes < 1 or maximum_members < 1:
+    if os.name != "posix":
+        raise BackupError("safe offline recovery requires a POSIX host")
+    if type(maximum_bytes) is not int or maximum_bytes < 1 or type(maximum_members) is not int or maximum_members < 1:
         raise BackupError("invalid restore limits")
     receipt = verify_snapshot(directory)
     if collector_key:
@@ -91,6 +127,9 @@ def restore(directory, identity, output, *, trusted_sha256=None, collector_key=N
         verify_file(Path(directory) / "receipt.json", Path(directory) / "receipt.sig.json", collector_key, "collector-receipt")
     if receipt["schema_version"] not in (2, 3):
         raise BackupError("safe restore requires v2/v3; use documented manual v1 recovery")
+    encrypted_bytes = sum(entry["bytes"] for entry in receipt["files"])
+    if encrypted_bytes > maximum_bytes + maximum_members * 2048 + 16 * 1024 ** 2:
+        raise BackupError("encrypted snapshot exceeds restore storage budget")
     ciphertext = Path(directory) / "snapshot.tar.gz.age"
     trusted_target = Path(directory) / "receipt.json" if receipt["schema_version"] == 3 else ciphertext
     if trusted_sha256 is not None and (not SHA256.fullmatch(trusted_sha256) or sha256(trusted_target) != trusted_sha256):
@@ -100,6 +139,8 @@ def restore(directory, identity, output, *, trusted_sha256=None, collector_key=N
     output = Path(output).absolute()
     if output.exists() or output.is_symlink() or any(p.is_symlink() for p in output.parents):
         raise BackupError("restore output must be new and have no symlink ancestors")
+    if shutil.disk_usage(output.parent).free < encrypted_bytes * 2 + 16 * 1024 ** 2:
+        raise BackupError("insufficient free storage for offline decryption")
     created = False
     try:
         output.mkdir(mode=0o700)
@@ -126,6 +167,7 @@ def restore(directory, identity, output, *, trusted_sha256=None, collector_key=N
             manifest = verify_contents(root, run_id=receipt["run_id"])
             if manifest["complete"] != receipt["complete"]:
                 raise BackupError("inner and outer completion status disagree")
+            manifest["recovery_checks"] = {"content_only": True} if content_only else verify_applications(root)
         return manifest
     except (OSError, ValueError, tarfile.TarError):
         if created:

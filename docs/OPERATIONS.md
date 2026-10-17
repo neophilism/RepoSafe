@@ -75,3 +75,11 @@ and restore on a clean host. A compromised collector may poison future captures 
 with valid signatures, so neither the latest timestamp nor a passing hash alone is
 sufficient evidence of clean source data. Re-enroll credentials on fixed reviewed
 code and complete another independent restore/alert drill before resuming normal use.
+
+ACTIVATION.md and the feed units implement autonomous SFTP polling. Production
+examples use a 28-hour stale threshold with hourly polling to reserve alert-delivery
+margin within the 30-hour objective. A CLI maximum of 30 hours plus hourly polling
+would allow roughly 31 hours before notification; measure and choose the threshold
+with that latency included. Offline evidence can be a directory of signed generation
+proofs; the monitor selects the freshest authenticated capture without trusting a
+mutable latest pointer.
