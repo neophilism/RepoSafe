@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -36,3 +37,24 @@ def write_json(path, value):
         os.chmod(path, 0o600)
         json.dump(value, output, sort_keys=True, indent=2)
         output.write("\n")
+        output.flush()
+        os.fsync(output.fileno())
+
+
+def atomic_json(path, value):
+    path = Path(path)
+    descriptor, name = tempfile.mkstemp(prefix=".pending-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w") as output:
+            json.dump(value, output, sort_keys=True, indent=2)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(name, path)
+        directory = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        Path(name).unlink(missing_ok=True)

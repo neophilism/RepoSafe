@@ -1,0 +1,30 @@
+[Unit]
+Description=RepoSafe isolated source collection
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=reposafe-collector
+Group=reposafe-collector
+WorkingDirectory=/opt/reposafe/current
+EnvironmentFile=/etc/reposafe/collector.env
+ExecStart=/opt/reposafe/venv/bin/reposafe --config /etc/reposafe/collector.toml collect --output /var/lib/reposafe-collector/spool --state-dir /var/lib/reposafe-collector/state
+UMask=0077
+StateDirectory=reposafe-collector
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/reposafe-collector
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TimeoutStartSec=5h
+KillMode=control-group

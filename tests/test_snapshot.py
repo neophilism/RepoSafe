@@ -69,6 +69,16 @@ class SnapshotTests(unittest.TestCase):
         second = capture(self.config, FakeGitHub(), self.root / "out", mirror_fn=self.local_mirror)
         self.assertNotEqual(first.directory, second.directory)
 
+    def test_signed_receipt_published_only_after_encryption(self):
+        from unittest.mock import patch
+        from reposafe.signing import generate_keys, verify_file
+        generate_keys(self.root / "signing")
+        with patch.dict(os.environ, {"REPOSAFE_COLLECTOR_SIGNING_KEY_FILE": str(self.root / "signing/private.pem")}):
+            result = capture(self.config, FakeGitHub(), self.root / "out", mirror_fn=self.local_mirror)
+        verify_file(result.directory / "receipt.json", result.directory / "receipt.sig.json",
+                    self.root / "signing/public.pem", "collector-receipt")
+        self.assertFalse((result.directory / "receipt.pending.json").exists())
+
 
 class EnvironmentTests(unittest.TestCase):
     def test_git_environment_removes_injected_helpers_and_tracing(self):

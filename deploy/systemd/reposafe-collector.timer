@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily isolated RepoSafe capture
+
+[Timer]
+OnCalendar=*-*-* 08:23:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+Unit=reposafe-collector.service
+
+[Install]
+WantedBy=timers.target

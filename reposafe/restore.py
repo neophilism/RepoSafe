@@ -81,11 +81,14 @@ def verify_contents(root, *, run_id):
         raise BackupError("restored payload content verification failed") from None
 
 
-def restore(directory, identity, output, *, trusted_sha256=None, allow_partial=False,
+def restore(directory, identity, output, *, trusted_sha256=None, collector_key=None, allow_partial=False,
             maximum_bytes=100 * 1024 ** 3, maximum_members=1_000_000):
     if type(maximum_bytes) is not int or maximum_bytes < 1 or maximum_members < 1:
         raise BackupError("invalid restore limits")
     receipt = verify_snapshot(directory)
+    if collector_key:
+        from .signing import verify_file
+        verify_file(Path(directory) / "receipt.json", Path(directory) / "receipt.sig.json", collector_key, "collector-receipt")
     if receipt["schema_version"] not in (2, 3):
         raise BackupError("safe restore requires v2/v3; use documented manual v1 recovery")
     ciphertext = Path(directory) / "snapshot.tar.gz.age"

@@ -94,3 +94,16 @@ def execute(config, github, output, state_dir, *, capture_fn=capture, deliver_fn
             state["last_success"] = {"run_id": result.run_id, "finished_at": datetime.now(timezone.utc).isoformat()}
         save_state(root, state)
         return result, deliveries, success
+
+
+def collect_only(config, github, output, state_dir):
+    if not os.environ.get("REPOSAFE_COLLECTOR_SIGNING_KEY_FILE"):
+        raise BackupError("isolated collection requires a collector signing key")
+    with run_lock(state_dir) as root:
+        state = read_state(root)
+        result = capture(config, github, output, expected_repository_ids=state["observed_repository_ids"], forbidden=(root,))
+        state["observed_repository_ids"] = sorted(set(state["observed_repository_ids"]) | set(result.repository_ids))
+        state["last_capture"] = {"run_id": result.run_id, "complete": result.complete,
+                                 "finished_at": datetime.now(timezone.utc).isoformat()}
+        save_state(root, state)
+        return result

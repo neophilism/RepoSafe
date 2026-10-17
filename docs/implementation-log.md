@@ -26,3 +26,14 @@ read-back, receipt-last publication, idempotent resume and exact-version recover
 are implemented. Added independently encrypted v3 chunks, disk/size checks and a
 reviewable AWS template. See VAULTS.md. All 58 local tests pass, including an installed boto3 request-model check; real provider
 capability/retention/permission enforcement still needs authorized cloud accounts.
+
+## Separate agents and witnessed provenance — PR #7 (H8/H9)
+
+Added collector/writer/witness Ed25519 signatures with external public-key pins,
+private bounded inbox sweeps, atomic signed catalogs, native version read-back by
+a separate read-only witness, retention evidence and a monotonic signed event chain.
+Source credentials are refused by writers; partial, mismatched, stale and replayed
+runs cannot become complete witness events. Added isolated role timer/service
+examples, direct catalog recovery and signed offline restore. See PROVENANCE.md.
+All 67 tests pass locally; actual separate hosts, permission enforcement, independent
+sequence anchoring and account recovery remain deployment requirements.
