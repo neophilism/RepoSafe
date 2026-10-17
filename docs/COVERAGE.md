@@ -8,10 +8,11 @@
 | Git LFS | `git lfs fetch --all origin` by default | Disabling LFS creates a code-only backup; unavailable LFS fails that repository |
 | Repository metadata | Repository list API response per repository | JSON, not automatic recreation of GitHub settings |
 | Submodules | Pointer commits in parent repository | Targets must themselves be accessible and included repositories |
-| Issues, PRs, reviews, discussions, wikis, release assets, Actions artifacts | Planned | Not included in the initial snapshot |
+| Issues, PRs, reviews, discussions, wikis, release assets, Actions artifacts | Opt-in bounded exporters and wiki mirrors | Selected groups fail completion if unavailable; JSON/asset export, not automatic GitHub re-import |
 | GitHub secrets and environment secret values | Not exportable through GitHub APIs | Recover from an independently managed password manager or secret escrow |
 | Explicit local files/directories | Regular-file collector with exclusions, mutation checks and byte limits | POSIX roots only; links/special files fail; no cross-file transaction or ACL/mode restoration |
-| External services and databases | Planned native adapters | Not implicitly covered by a Git mirror or plain file copy |
+| SQLite / PostgreSQL | Online SQLite backup / custom-format PostgreSQL logical dump | Enrolled data only; role secrets and PITR require independent escrow/export chains |
+| Object/document services | Explicit read-only rclone sources with inventories and byte checks | Current objects/exported formats; no implicit provider version/ACL history |
 
 Every run records coverage and failures inside the encrypted archive. A partial run
 preserves useful copies but is never reported as complete. A successful inventory

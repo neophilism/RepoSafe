@@ -37,3 +37,13 @@ runs cannot become complete witness events. Added isolated role timer/service
 examples, direct catalog recovery and signed offline restore. See PROVENANCE.md.
 All 67 tests pass locally; actual separate hosts, permission enforcement, independent
 sequence anchoring and account recovery remain deployment requirements.
+
+## Consistent other-data sources — PR #8 (H10)
+
+Added SQLite online/WAL-consistent backup and integrity checks, streamed PostgreSQL
+custom dumps with verified-TLS/private service files, readable role/extension evidence
+and archive checks, and explicit remote object/document exports with stable inventories
+and downloaded-byte checking. Dataset failures make the whole capture partial.
+Tool execution now bounds stdout/stderr/time and kills child process groups on failure.
+See DATASETS.md for scope and PITR boundaries. Local suite: 79 tests, with the isolated
+PostgreSQL export/restore test required in CI rather than skipped silently there.

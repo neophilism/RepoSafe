@@ -22,7 +22,7 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | Provider diversity | H7 | H6 | B2 compliance vault and independent permission verification | Implemented in PR #6; cloud acceptance pending |
 | Isolation | H8 | H2, H6 | Collector/delivery separation, least-privilege roles and isolated runtime packaging | Implemented in PR #7; deployment acceptance pending |
 | Provenance | H9 | H6, H8 | Signed receipts, independent witness and rollback detection | Implemented in PR #7; independent deployment pending |
-| Other data | H10 | H1 | Database-consistent PostgreSQL/SQLite exports and object/document adapters | Planned |
+| Other data | H10 | H1 | Database-consistent PostgreSQL/SQLite exports and object/document adapters | Implemented in PR #8; enrolled-service acceptance pending |
 | Scale | H11 | H3, H6 | Chunked resumable transfer and capacity policies; measured hot-tier decision | Implemented in PR #6; cloud acceptance pending |
 | Operations | H12 | H6, H7, H9 | Independent freshness/retention monitoring and failure alerting | Planned |
 | Offline | H13 | H9, H11 | Rotated offline export, complete recovery kit and media verification | Planned |

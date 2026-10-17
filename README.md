@@ -83,3 +83,5 @@ Separate delivery agents and signed witnessing are implemented; see [PROVENANCE.
 of a recovery identity retained offline by the owner.
 
 Additional source metadata/App authentication: [GITHUB_EXPORTS.md](docs/GITHUB_EXPORTS.md).
+
+Consistent database and remote file/document enrollment: [DATASETS.md](docs/DATASETS.md).
