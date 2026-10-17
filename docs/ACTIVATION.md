@@ -7,14 +7,24 @@ are already backed up. The schedule stays unactivated until runtime setup succee
 
 ## Bootstrap: daily Drive and Dropbox
 
-Follow SETUP.md. On a trusted recovery computer, generate and securely retain the
-age identity; provide **only its public recipient**. Authorize unattended rclone
-remotes for Drive/Dropbox and provide a read-only GitHub runtime grant covering all
-requested owners/private repositories. Put the runtime settings directly in the
-runner's secret store, not chat, PRs or repository files.
+The application and daily workflow are implemented. To start the basic deployment,
+provide these three settings. Follow [SETUP.md](SETUP.md) for key generation and
+provider authorization; no ChatGPT Dropbox/Drive app is needed.
 
-Run the manual GitHub workflow, recover a synthetic and a private enrolled repository,
-and inspect both providers. Then set `REPOSAFE_ENABLED=true` for 08:23 UTC daily.
+| Setting | What the owner supplies | Where to put it |
+| --- | --- | --- |
+| `GITHUB_BACKUP_TOKEN` | A dedicated read-only GitHub credential covering the desired public/private repos, with Metadata and Contents read; approve organization/SSO access where required | [Actions secrets](https://github.com/neophilism/RepoSafe/settings/secrets/actions) |
+| `RCLONE_CONFIG_B64` | Single-line base64 of the unattended OAuth config with remotes named exactly `gdrive` and `dropbox`, each able to create, list and read its backup files | [Actions secrets](https://github.com/neophilism/RepoSafe/settings/secrets/actions) |
+| `AGE_RECIPIENT` | The public `age1...` recipient generated on a trusted recovery computer | [Actions variables](https://github.com/neophilism/RepoSafe/settings/variables/actions) |
+
+Keep the private age identity in two secured offline locations. Enter tokens and
+OAuth configuration directly into the secret store, never chat, PRs or repository
+files. Base64 does not encrypt a secret. RepoSafe's connected GitHub development
+session cannot be exported as the unattended runner's credential.
+
+Run [Daily encrypted backup](https://github.com/neophilism/RepoSafe/actions/workflows/backup.yml)
+manually, recover a synthetic and a private enrolled repository, and inspect both
+providers. Then set the Actions variable `REPOSAFE_ENABLED=true` for 08:23 UTC daily.
 This is the easy starting deployment. Its GitHub control plane and shared writer
 credentials remain weaker than the isolated topology below.
 
@@ -121,6 +131,19 @@ it does not manufacture physical proof or replace ongoing monitoring. Store actu
 acceptance/catalog/private inventory outside this public repository.
 
 ## Remaining real-world inputs
+
+After the three bootstrap settings above, the hardened deployment needs these
+non-secret choices and authorized resources. A host/account reference or scope can
+be discussed in chat; provision its credentials directly into the corresponding
+role's private secret store.
+
+| Input | Concrete decision or resource |
+| --- | --- |
+| Independent hosts | Authorized collector, separate provider writers, witness and monitor hosts/accounts, with an agreed installation/access method |
+| Immutable storage and spending | AWS and B2 account/bucket/region choices, approved recurring budget and exact compliance-retention durations; no paid or irreversible resources are created before these are approved |
+| Alerts | An actual HTTPS receiver and its recipient/escalation route; the receiver must also alarm when monitor requests stop arriving |
+| Offline copies | At least two encrypted removable devices, custody/locations and a person responsible for weekly rotation and recovery drills |
+| Other data | The exact file roots, databases and remote services to enroll, their read-only access method, and required recovery scope |
 
 No runtime source/cloud OAuth grant, owner-held age public recipient, authorized
 independent host, funded immutable account, alert endpoint/recipient or physical

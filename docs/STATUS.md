@@ -10,7 +10,12 @@
 | SQLite/PostgreSQL and remote objects/documents | PR #8 merged | 79-test CI included real isolated PostgreSQL export/restore; actual datasets not enrolled |
 | Independent signed-evidence monitor/alerts | PR #9 merged | Freshness/gap/rollback/copy-policy/offline/webhook fixtures; real endpoint/recipient pending |
 | Enrolled offline media/kit and read-only retention proposals | PR #10 merged | 95-test CI; signed media/kit/copy, corruption/capacity/hold/anchor fixtures; physical media pending |
-| Recovery qualification, pinned releases, queue feeds and activation tooling | PR #11 | 106 local tests, 32 MiB measured local drill, wheel build and locked dependency audit; final CI required before merge |
+| Recovery qualification, pinned releases, queue feeds and activation tooling | PR #11 merged | 106 tests passed on Python 3.11/3.12/3.13 in CI, including real PostgreSQL restore; wheel, synthetic recovery and public GitHub smoke passed; 32 MiB measured local drill and locked dependency audit recorded |
+
+The reviewed implementation is merged at `6b68081b481dfd1db609a4fc15753e4ca1595d32`.
+[Main CI run 39036271533](https://github.com/neophilism/RepoSafe/actions/runs/39036271533)
+passed after merge. The final documentation handoff adds exact owner settings and
+deployment decisions to ACTIVATION.md; it does not activate any runtime account.
 
 Implementation covers H0–H15 and H16 deployment/acceptance tooling. Production H16
 acceptance is pending, not asserted. Logical dumps do not imply PITR/WAL-chain
