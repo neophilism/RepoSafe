@@ -3,6 +3,7 @@
 import json
 import base64
 import hashlib
+import re
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 from .agents import verify_catalog
 from .common import BackupError, atomic_json, sha256, write_json
 from .runner import run_lock
-from .signing import private_public_key, read_regular, sign_file, verify_file
+from .signing import private_public_key, read_regular, sign_file, verify_file, verify_bytes
 from .vault import ObjectVault
 
 
@@ -165,18 +166,42 @@ def witness(config, catalogs, writer_keys, collector_key, state_dir, signing_key
         return target / "event.json"
 
 
-def verify_event(path, pinned_key, *, minimum_sequence=1, previous_sha256=None):
+def verify_event(path, pinned_key, *, minimum_sequence=1, previous_sha256=None, return_digest=False):
     path = Path(path)
-    verify_file(path, path.with_name("event.sig.json"), pinned_key, "witness-event")
     try:
-        event = json.loads(read_regular(path, 16 * 1024 ** 2))
+        raw = read_regular(path, 16 * 1024 ** 2)
+        digest = verify_bytes(raw, json.loads(read_regular(path.with_name("event.sig.json"), 4096)), pinned_key, "witness-event")
+        event = json.loads(raw)
         if (event["schema_version"] != 1 or event["kind"] != "witness-event" or
             type(event["sequence"]) is not int or event["sequence"] < minimum_sequence or event["complete"] is not True):
             raise ValueError
+        from .delivery import RUN_ID
+        if not RUN_ID.fullmatch(event["run_id"]) or not re.fullmatch(r"[a-f0-9]{64}", event["receipt_sha256"]):
+            raise ValueError
+        if event["sequence"] == 1 and event["previous_sha256"] is not None:
+            raise ValueError
+        if event["sequence"] > 1 and not re.fullmatch(r"[a-f0-9]{64}", event["previous_sha256"]):
+            raise ValueError
         if previous_sha256 is not None and event["previous_sha256"] != previous_sha256:
             raise ValueError
-        timestamp(event["captured_at"])
-        timestamp(event["witnessed_at"])
-        return event
+        captured, witnessed = timestamp(event["captured_at"]), timestamp(event["witnessed_at"])
+        if captured.strftime("%Y%m%dT%H%M%SZ") != event["run_id"][:16] or witnessed < captured - timedelta(minutes=5):
+            raise ValueError
+        copies, names = 0, set()
+        if not isinstance(event["destinations"], list) or not 1 <= len(event["destinations"]) <= 128:
+            raise ValueError
+        for item in event["destinations"]:
+            if (not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", item["destination"]) or item["destination"] in names or
+                item["provider"] not in ("s3", "b2", "rclone") or type(item["required"]) is not bool or
+                type(item["independent_cloud_readback"]) is not bool or not re.fullmatch(r"[a-f0-9]{64}", item["catalog_sha256"])):
+                raise ValueError
+            names.add(item["destination"])
+            if item["independent_cloud_readback"]:
+                if item["provider"] not in ("s3", "b2") or timestamp(item["minimum_retain_until"]) <= witnessed:
+                    raise ValueError
+                copies += int(item["required"])
+        if type(event["independently_verified_immutable_copies"]) is not int or event["independently_verified_immutable_copies"] != copies:
+            raise ValueError
+        return (event, digest) if return_digest else event
     except (ValueError, KeyError, TypeError):
         raise BackupError("witness event violates sequence/chain policy") from None

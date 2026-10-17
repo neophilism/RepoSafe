@@ -1,0 +1,30 @@
+[Unit]
+Description=RepoSafe independent signed-evidence monitor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=reposafe-monitor
+Group=reposafe-monitor
+WorkingDirectory=/opt/reposafe/current
+EnvironmentFile=/etc/reposafe/monitor.env
+ExecStart=/opt/reposafe/venv/bin/reposafe monitor --inbox /srv/reposafe-events --witness-key /etc/reposafe/pins/witness --state-dir /var/lib/reposafe-monitor/state --required-destination drive --required-destination dropbox --required-destination aws --required-destination b2 --minimum-immutable 2 --offline-report /srv/reposafe-offline/copy.json --offline-key /etc/reposafe/pins/offline --notify
+UMask=0077
+StateDirectory=reposafe-monitor
+StateDirectoryMode=0700
+ReadOnlyPaths=/srv/reposafe-events /srv/reposafe-offline
+ReadWritePaths=/var/lib/reposafe-monitor
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TimeoutStartSec=2min

@@ -47,3 +47,12 @@ and downloaded-byte checking. Dataset failures make the whole capture partial.
 Tool execution now bounds stdout/stderr/time and kills child process groups on failure.
 See DATASETS.md for scope and PITR boundaries. Local suite: 79 tests, with the isolated
 PostgreSQL export/restore test required in CI rather than skipped silently there.
+
+## Independent monitor — PR #9 (H12)
+
+Added independent signed-witness chain ingestion with a durable high-water mark,
+required destination/provider-diversity policy, freshness/future-clock/retention
+checks, signed offline-copy age checks and aggregate HTTPS alert delivery. Missing
+events and heartbeat-only claims never become success. Added hourly service/timer
+samples. The 86-test local suite passes with PostgreSQL required in CI. No real
+alert recipients/endpoints are configured or contacted by development.

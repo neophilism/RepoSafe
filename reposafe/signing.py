@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .common import BackupError, sha256, write_json
 
-PURPOSES = {"collector-receipt", "writer-catalog", "witness-event", "coverage-registry", "recovery-kit"}
+PURPOSES = {"collector-receipt", "writer-catalog", "witness-event", "coverage-registry", "recovery-kit", "offline-media", "offline-copy"}
 
 
 def crypto():

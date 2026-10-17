@@ -10,7 +10,7 @@ from .delivery import deliver_all, delivery_succeeded, verify_snapshot
 from .runner import execute
 from .restore import restore
 from .auth import client_from_environment
-from . import security_cli
+from . import security_cli, operations_cli
 
 
 def main(argv=None):
@@ -18,6 +18,7 @@ def main(argv=None):
     parser.add_argument("--config", default="reposafe.toml")
     commands = parser.add_subparsers(dest="action", required=True)
     security_cli.register(commands)
+    operations_cli.register(commands)
     commands.add_parser("validate", help="validate configuration without network access")
     snapshot = commands.add_parser("snapshot", help="capture and encrypt configured repositories")
     snapshot.add_argument("--output", default="backups")
@@ -43,6 +44,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     os.umask(0o077)
     try:
+        handled = operations_cli.dispatch(args)
+        if handled is not None:
+            return handled
         handled = security_cli.dispatch(args)
         if handled is not None:
             return handled
