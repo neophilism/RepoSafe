@@ -65,8 +65,9 @@ removed on ordinary completion; host encryption protects residual blocks.
 Copy `reposafe.example.toml` to `reposafe.toml`, set the recipient and coverage
 guards, and export `GITHUB_BACKUP_TOKEN` and `RCLONE_CONFIG` from a private service
 environment. Run `python -m reposafe --config reposafe.toml run --output backups`.
-Use a dedicated OS account and encrypted disk. The hardened foundation adds systemd
-units, locking, local-file adapters and a standalone restore verifier.
+Use a dedicated OS account and encrypted disk. See INDEPENDENT_RUNNER.md for the
+implemented systemd units, locking, file collector, durable coverage state and
+offline restore verifier.
 
 Every destination is attempted independently, including after a required provider
 fails. Success requires the capture and every required destination to succeed.

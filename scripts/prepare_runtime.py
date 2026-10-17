@@ -3,6 +3,7 @@
 import base64
 import configparser
 import os
+import re
 from pathlib import Path
 
 
@@ -10,8 +11,8 @@ def prepare(environment):
     os.umask(0o077)
     root = Path(environment["RUNNER_TEMP"])
     recipient = environment["AGE_RECIPIENT"].strip()
-    if not recipient or "\n" in recipient or "\r" in recipient:
-        raise ValueError("missing recipient")
+    if not re.fullmatch(r"age1[0-9a-z]{58}", recipient):
+        raise ValueError("invalid public recipient")
     content = base64.b64decode(environment["RCLONE_CONFIG_B64"], validate=True)
     parsed = configparser.ConfigParser(interpolation=None)
     parsed.read_string(content.decode())

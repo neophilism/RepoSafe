@@ -28,6 +28,26 @@ scope, migration, required verification and external deployment inputs. Next: H1
 independent-runner foundation. Immutable vaults, isolated delivery hosts, signed
 witnessing, independent monitoring and offline media remain planned features.
 
-No real account backup or cloud transfer has been performed. Deployment needs a
-separate read-only GitHub credential, public age recipient and destination OAuth
-configuration. ChatGPT app connections do not supply runtime OAuth credentials.
+## Hardened foundation H1 — PR #4
+
+Implemented: POSIX regular-file collector with descriptor-anchored no-follow access,
+exclusions, mutation detection and source byte caps; v2 encrypted content inventories;
+safe offline restore with content checks, digest anchoring, no overwrite and bounded
+extraction rejecting traversal/links/devices/sparse/duplicate entries; exclusive run
+lock; private atomic fsynced state; monotonic observed IDs; success only after complete
+capture and all required copies. Missing repos preserve visible data as a partial run.
+Includes independent daily systemd templates and deployment/format/recovery docs.
+
+Verification: 39 local tests pass with real age, real Git branch/tag recovery and
+fsck, real rclone transfers to two local fixtures, corruption, wrong key/digest,
+archive attacks, source mutation, coverage loss, locks and state semantics. The
+systemd service/timer passed isolated root-fixture syntax verification; the calendar
+expression parsed. A read-only live public-repo smoke runs in GitHub CI; local live
+GitHub access is restricted by sandbox DNS. Synthetic fixtures do not verify live
+private-repo authorization, Drive/Dropbox OAuth, cloud retention or account recovery.
+
+No real private-account backup or cloud transfer has been performed. Deployment
+needs a dedicated read-only GitHub runtime credential, public age recipient and
+destination OAuth config. The schedule is not activated; no independent host,
+immutable vault, external monitor or offline media is provisioned. H2–H16 remain
+the robust target plan rather than completed production defenses.

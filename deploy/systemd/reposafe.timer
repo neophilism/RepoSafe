@@ -1,0 +1,12 @@
+[Unit]
+Description=Run RepoSafe daily independently of GitHub
+
+[Timer]
+OnCalendar=*-*-* 08:23:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+AccuracySec=1m
+Unit=reposafe.service
+
+[Install]
+WantedBy=timers.target

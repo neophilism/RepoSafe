@@ -10,7 +10,8 @@
 | Submodules | Pointer commits in parent repository | Targets must themselves be accessible and included repositories |
 | Issues, PRs, reviews, discussions, wikis, release assets, Actions artifacts | Planned | Not included in the initial snapshot |
 | GitHub secrets and environment secret values | Not exportable through GitHub APIs | Recover from an independently managed password manager or secret escrow |
-| External services, databases, local uncommitted files | Planned adapters | Not implicitly covered by a Git mirror |
+| Explicit local files/directories | Regular-file collector with exclusions, mutation checks and byte limits | POSIX roots only; links/special files fail; no cross-file transaction or ACL/mode restoration |
+| External services and databases | Planned native adapters | Not implicitly covered by a Git mirror or plain file copy |
 
 Every run records coverage and failures inside the encrypted archive. A partial run
 preserves useful copies but is never reported as complete. A successful inventory

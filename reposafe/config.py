@@ -17,6 +17,14 @@ class Destination:
 
 
 @dataclass(frozen=True)
+class FileSource:
+    name: str
+    path: Path
+    exclude: tuple[str, ...] = ()
+    maximum_bytes: int = 20 * 1024 ** 3
+
+
+@dataclass(frozen=True)
 class Config:
     owners: tuple[str, ...]
     recipients: tuple[str, ...]
@@ -25,6 +33,7 @@ class Config:
     include_lfs: bool = True
     work_dir: Path | None = None
     destinations: tuple[Destination, ...] = ()
+    files: tuple[FileSource, ...] = ()
 
 
 def load(path):
@@ -57,6 +66,19 @@ def load(path):
             destinations.append(Destination(name, remote.rstrip("/"), needed))
         if len({d.name for d in destinations}) != len(destinations) or len({d.remote for d in destinations}) != len(destinations):
             raise ValueError
-        return Config(owners, recipients, minimum, required, lfs, Path(work) if work else None, tuple(destinations))
+        sources = []
+        for item in data.get("files", []):
+            name, source = item["name"], Path(item["path"])
+            excludes = tuple(item.get("exclude", []))
+            maximum = item.get("maximum_bytes", 20 * 1024 ** 3)
+            if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", name) or not source.is_absolute():
+                raise ValueError
+            if type(maximum) is not int or maximum < 1 or any(not isinstance(x, str) or "\x00" in x for x in excludes):
+                raise ValueError
+            sources.append(FileSource(name, source, excludes, maximum))
+        if len({s.name for s in sources}) != len(sources):
+            raise ValueError
+        return Config(owners, recipients, minimum, required, lfs, Path(work) if work else None,
+                      tuple(destinations), tuple(sources))
     except (KeyError, TypeError, ValueError, OSError, tomllib.TOMLDecodeError):
         raise BackupError("invalid configuration; see reposafe.example.toml") from None

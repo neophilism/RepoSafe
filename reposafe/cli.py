@@ -7,6 +7,8 @@ from .config import load
 from .github import GitHub
 from .snapshot import capture
 from .delivery import deliver_all, delivery_succeeded, verify_snapshot
+from .runner import execute
+from .restore import restore
 
 
 def main(argv=None):
@@ -18,20 +20,35 @@ def main(argv=None):
     snapshot.add_argument("--output", default="backups")
     run = commands.add_parser("run", help="capture and independently verify each destination")
     run.add_argument("--output", default="backups")
-    deliver = commands.add_parser("deliver", help="retry delivery of an existing encrypted snapshot")
+    run.add_argument("--state-dir", default="state")
+    deliver = commands.add_parser("deliver", help="retry an existing encrypted snapshot")
     deliver.add_argument("directory")
     verify = commands.add_parser("verify", help="verify local ciphertext against its receipt")
     verify.add_argument("directory")
+    recovery = commands.add_parser("restore", help="decrypt and verify v2 into a NEW local directory")
+    recovery.add_argument("directory")
+    recovery.add_argument("--identity", required=True)
+    recovery.add_argument("--output", required=True)
+    recovery.add_argument("--trusted-sha256")
+    recovery.add_argument("--allow-partial", action="store_true")
+    recovery.add_argument("--maximum-bytes", type=int, default=100 * 1024 ** 3)
+    recovery.add_argument("--maximum-members", type=int, default=1_000_000)
     args = parser.parse_args(argv)
     os.umask(0o077)
     try:
-        config = load(args.config)
-        if args.action == "validate":
-            print("configuration valid")
+        if args.action == "restore":
+            manifest = restore(args.directory, args.identity, args.output,
+                               trusted_sha256=args.trusted_sha256, allow_partial=args.allow_partial,
+                               maximum_bytes=args.maximum_bytes, maximum_members=args.maximum_members)
+            print(f"restored and content verified; complete={manifest['complete']}; provenance={'trusted digest' if args.trusted_sha256 else 'not independently authenticated'}")
             return 0
         if args.action == "verify":
             verify_snapshot(args.directory)
             print("ciphertext matches receipt; receipt authenticity requires separate trust")
+            return 0
+        config = load(args.config)
+        if args.action == "validate":
+            print("configuration valid")
             return 0
         if args.action in ("run", "deliver") and not any(d.required for d in config.destinations):
             raise BackupError("at least one required destination must be configured")
@@ -40,15 +57,19 @@ def main(argv=None):
             results = deliver_all(args.directory, config.destinations)
             print(f"destinations verified={sum(r.verified for r in results)}/{len(results)}")
             return 0 if receipt["complete"] and delivery_succeeded(results) else 1
+        if args.action == "run":
+            result, results, success = execute(config, GitHub(os.environ.get("GITHUB_BACKUP_TOKEN", "")),
+                                               args.output, args.state_dir)
+            print(f"capture complete={result.complete}; failed={result.failed_count}; coverage missing={result.missing_count}; destinations verified={sum(r.verified for r in results)}/{len(results)}")
+            return 0 if success else 1
         result = capture(config, GitHub(os.environ.get("GITHUB_BACKUP_TOKEN", "")), args.output)
         print(f"encrypted snapshot created; repositories={result.repository_count}; failed={result.failed_count}")
-        if args.action == "run":
-            results = deliver_all(result.directory, config.destinations)
-            print(f"destinations verified={sum(r.verified for r in results)}/{len(results)}")
-            return 0 if result.complete and delivery_succeeded(results) else 1
         return 0 if result.complete else 1
     except BackupError as error:
         print(f"RepoSafe: {error}", file=sys.stderr)
+        return 1
+    except OSError:
+        print("RepoSafe: local I/O failed; inspect privately on the runner", file=sys.stderr)
         return 1
 
 

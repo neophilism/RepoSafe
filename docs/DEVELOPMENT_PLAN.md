@@ -13,7 +13,7 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | Bootstrap | B1 | Empty repo | Encrypted GitHub mirrors and explicit coverage | PR #1 merged |
 | Bootstrap | B2 | B1 | Daily Drive/Dropbox copy and verification | PR #2 merged |
 | Design | H0 | B2 | Technical architecture, full plan, decisions and acceptance boundaries | This documentation PR |
-| Foundation | H1 | H0 | Independent runner, source interface/files, durable coverage state, safe offline recovery | Next implementation PR |
+| Foundation | H1 | H0 | Independent runner, source interface/files, durable coverage state, safe offline recovery | PR #4 |
 | Source identity | H2 | H1 | GitHub App tokens and independently reconciled owner inventory | Planned |
 | Git fidelity | H3 | H2 | Ref maps, LFS validation, submodule/wikis and repository lifecycle handling | Planned |
 | Metadata | H4 | H3 | Issues/PR/review/comment/label/milestone exporters | Planned |
