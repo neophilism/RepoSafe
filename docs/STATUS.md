@@ -7,8 +7,18 @@ coverage guards, bare mirrors, optional all-object LFS fetch, metadata, offline
 age recipient encryption, unique run paths, integrity receipts and partial-run
 status. Tests use synthetic repositories and throwaway recovery keys.
 
-Next: independent Drive/Dropbox delivery, daily workflow, recovery instructions;
-then the hardened architecture, full PR plan and independent-runner foundation.
+PR 1 merged after 12 tests and GitHub Actions CI passed.
+
+## Basic PR 2 — daily independent Drive/Dropbox delivery
+
+Implemented: rclone copy-only delivery, downloaded-byte checking, receipt-last
+publication, independent provider failures, retries from existing ciphertext,
+daily scheduled/manual workflow, isolated runtime secret files, and setup/recovery
+instructions. Real rclone integration tests use two local directories, check
+same-size corruption, retries and preservation of previous data. These tests do
+not establish actual Drive/Dropbox OAuth or provider behavior.
+
+Next: hardened architecture, full PR plan and independent-runner foundation.
 
 No real account backup or cloud transfer has been performed. Deployment needs a
 separate read-only GitHub credential, public age recipient and destination OAuth

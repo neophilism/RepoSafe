@@ -36,3 +36,21 @@ See [coverage](docs/COVERAGE.md), [status](docs/STATUS.md), and
 Snapshots temporarily require plaintext scratch space. Use a trusted, encrypted
 volume; deleting a temporary file is not guaranteed secure erasure on SSDs.
 Encryption protects uploaded contents, not a compromised collector reading sources.
+
+## Daily copies to Google Drive and Dropbox
+
+The [daily workflow](.github/workflows/backup.yml) runs at 08:23 UTC after setup.
+Follow [SETUP.md](docs/SETUP.md) for provider OAuth, runtime credentials and enabling
+the schedule. The routine copies ciphertext into a new run directory, checks
+uploaded bytes by downloading them, then uploads and checks the receipt. Both
+providers are attempted independently; all required providers must verify.
+
+Locally, use `python -m reposafe --config reposafe.toml run --output backups`.
+Retry with `python -m reposafe --config reposafe.toml deliver backups/RUN_ID`.
+See [recovery instructions](docs/RECOVERY.md) before relying on a backup.
+
+**Bootstrap security boundary:** a GitHub-hosted workflow holds provider tokens.
+A GitHub compromise could therefore threaten those mutable copies. The hardened
+design moves collection off GitHub and adds independently administered immutable
+storage and offline copies. Merely adding providers does not force independent
+compromises if credentials or account recovery are shared.
