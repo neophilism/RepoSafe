@@ -10,6 +10,13 @@ FULL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_.-]{1,100}\Z")
 
 
 @dataclass(frozen=True)
+class Destination:
+    name: str
+    remote: str
+    required: bool = True
+
+
+@dataclass(frozen=True)
 class Config:
     owners: tuple[str, ...]
     recipients: tuple[str, ...]
@@ -17,6 +24,7 @@ class Config:
     required_repositories: tuple[str, ...] = ()
     include_lfs: bool = True
     work_dir: Path | None = None
+    destinations: tuple[Destination, ...] = ()
 
 
 def load(path):
@@ -38,6 +46,17 @@ def load(path):
         if any(not FULL_NAME.fullmatch(r) or r.split("/")[0].lower() not in {o.lower() for o in owners} for r in required):
             raise ValueError
         work = data.get("runner", {}).get("work_dir")
-        return Config(owners, recipients, minimum, required, lfs, Path(work) if work else None)
+        destinations = []
+        for item in data.get("destinations", []):
+            name, remote = item["name"], item["remote"]
+            needed = item.get("required", True)
+            if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", name) or type(needed) is not bool:
+                raise ValueError
+            if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*:[^\r\n\x00]*", remote):
+                raise ValueError
+            destinations.append(Destination(name, remote.rstrip("/"), needed))
+        if len({d.name for d in destinations}) != len(destinations) or len({d.remote for d in destinations}) != len(destinations):
+            raise ValueError
+        return Config(owners, recipients, minimum, required, lfs, Path(work) if work else None, tuple(destinations))
     except (KeyError, TypeError, ValueError, OSError, tomllib.TOMLDecodeError):
         raise BackupError("invalid configuration; see reposafe.example.toml") from None
