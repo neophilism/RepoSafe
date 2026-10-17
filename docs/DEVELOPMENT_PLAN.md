@@ -31,9 +31,9 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | Activation | H16 | H15 | Real-account daily production rollout and signed acceptance evidence | Planned |
 
 Independent workstreams may be implemented in any dependency-valid order. No stage
-may represent planned defenses as already deployed. The owner's current request
-ends after H1 is completed and committed; the remaining plan is executable follow-on
-work, with live credentials/cost decisions identified rather than silently assumed.
+may represent planned defenses as already deployed. The owner has requested continuation through the remaining implementation plan.
+Code proceeds through production tooling; actual account enrollment, credentials and
+cost decisions remain explicit acceptance inputs.
 
 ## B1 — encrypted GitHub snapshots (completed)
 

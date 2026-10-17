@@ -9,6 +9,9 @@ from pathlib import Path
 from .common import BackupError, command, sha256, write_json
 from .sources import FileCollector
 from .format import content_inventory
+from .gitdata import evidence
+from .inventory import registry_ids
+from .metadata import export_repository
 
 
 @dataclass(frozen=True)
@@ -43,13 +46,15 @@ def mirror(repo, destination, env, include_lfs):
         endpoint = url + "/info/lfs"
         command([*safe, "-C", destination, "-c", "lfs.url=" + endpoint,
                  "-c", "remote.origin.lfsurl=" + endpoint, "lfs", "fetch", "--all", "origin"], env=env)
+    evidence(destination, env, lfs=include_lfs)
     write_json(destination.parent / "repository.json", repo)
 
 
 def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids=(), forbidden=()):
     inventory = github.inventory(config)
     repository_ids = tuple(repo["id"] for repo in inventory)
-    missing = sorted(set(expected_repository_ids) - set(repository_ids))
+    registered, retired = registry_ids(config)
+    missing = sorted(((set(expected_repository_ids) | registered) - retired) - set(repository_ids))
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(8)
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -72,7 +77,17 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
             repo_dir = payload / "repositories" / str(repo["id"])
             repo_dir.mkdir(parents=True, mode=0o700)
             try:
-                mirror_fn(repo, repo_dir / "mirror.git", env, config.include_lfs)
+                scoped = github.for_repository(repo) if hasattr(github, "for_repository") else github
+                repo_env = git_environment(scoped.token, askpass)
+                mirror_fn(repo, repo_dir / "mirror.git", repo_env, config.include_lfs)
+                if config.wiki and repo.get("has_wiki"):
+                    wiki = {**repo, "full_name": repo["full_name"] + ".wiki"}
+                    wiki_dir = repo_dir / "wiki"
+                    wiki_dir.mkdir(mode=0o700)
+                    mirror_fn(wiki, wiki_dir / "mirror.git", repo_env, False)
+                if config.metadata:
+                    export_repository(scoped, repo, repo_dir / "metadata", config.metadata,
+                                      maximum_bytes=config.metadata_maximum_bytes)
                 outcomes.append({"id": repo["id"], "full_name": repo["full_name"], "status": "complete"})
             except BackupError:
                 outcomes.append({"id": repo["id"], "full_name": repo["full_name"], "status": "failed"})
@@ -90,6 +105,8 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
             "schema_version": 2, "run_id": run_id, "complete": complete,
             "include_lfs": config.include_lfs, "repositories": outcomes,
             "sources": sources, "missing_repository_ids": missing,
+            "metadata_groups": list(config.metadata), "wiki_requested": config.wiki,
+            "selected_repository_grants_allowed": config.allow_selected_repositories,
             "coverage": "Git mirrors, LFS when enabled, repository metadata; see docs/COVERAGE.md",
         })
         content_inventory(payload)

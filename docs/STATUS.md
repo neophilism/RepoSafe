@@ -51,3 +51,8 @@ needs a dedicated read-only GitHub runtime credential, public age recipient and
 destination OAuth config. The schedule is not activated; no independent host,
 immutable vault, external monitor or offline media is provisioned. H2–H16 remain
 the robust target plan rather than completed production defenses.
+
+## Continuing development
+
+Source stages H2–H5 are implemented in PR #5; see implementation-log.md and
+GITHUB_EXPORTS.md. Storage, provenance and operations stages continue next.

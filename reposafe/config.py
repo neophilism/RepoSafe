@@ -34,6 +34,12 @@ class Config:
     work_dir: Path | None = None
     destinations: tuple[Destination, ...] = ()
     files: tuple[FileSource, ...] = ()
+    metadata: tuple[str, ...] = ()
+    wiki: bool = False
+    registry: Path | None = None
+    registry_sha256: str | None = None
+    allow_selected_repositories: bool = False
+    metadata_maximum_bytes: int = 2 * 1024 ** 3
 
 
 def load(path):
@@ -78,7 +84,20 @@ def load(path):
             sources.append(FileSource(name, source, excludes, maximum))
         if len({s.name for s in sources}) != len(sources):
             raise ValueError
+        metadata = tuple(github.get("metadata", []))
+        if any(x not in ("collaboration", "releases", "discussions", "settings", "actions") for x in metadata):
+            raise ValueError
+        wiki = github.get("wiki", False)
+        selected = github.get("allow_selected_repositories", False)
+        registry = github.get("registry")
+        digest = github.get("registry_sha256")
+        maximum = github.get("metadata_maximum_bytes", 2 * 1024 ** 3)
+        if type(wiki) is not bool or type(selected) is not bool or type(maximum) is not int or maximum < 1:
+            raise ValueError
+        if bool(registry) != bool(digest) or (digest and not re.fullmatch(r"[0-9a-f]{64}", digest)):
+            raise ValueError
         return Config(owners, recipients, minimum, required, lfs, Path(work) if work else None,
-                      tuple(destinations), tuple(sources))
+                      tuple(destinations), tuple(sources), metadata, wiki, Path(registry) if registry else None,
+                      digest, selected, maximum)
     except (KeyError, TypeError, ValueError, OSError, tomllib.TOMLDecodeError):
         raise BackupError("invalid configuration; see reposafe.example.toml") from None

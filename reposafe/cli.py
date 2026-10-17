@@ -9,6 +9,7 @@ from .snapshot import capture
 from .delivery import deliver_all, delivery_succeeded, verify_snapshot
 from .runner import execute
 from .restore import restore
+from .auth import client_from_environment
 
 
 def main(argv=None):
@@ -58,11 +59,11 @@ def main(argv=None):
             print(f"destinations verified={sum(r.verified for r in results)}/{len(results)}")
             return 0 if receipt["complete"] and delivery_succeeded(results) else 1
         if args.action == "run":
-            result, results, success = execute(config, GitHub(os.environ.get("GITHUB_BACKUP_TOKEN", "")),
+            result, results, success = execute(config, client_from_environment(config),
                                                args.output, args.state_dir)
             print(f"capture complete={result.complete}; failed={result.failed_count}; coverage missing={result.missing_count}; destinations verified={sum(r.verified for r in results)}/{len(results)}")
             return 0 if success else 1
-        result = capture(config, GitHub(os.environ.get("GITHUB_BACKUP_TOKEN", "")), args.output)
+        result = capture(config, client_from_environment(config), args.output)
         print(f"encrypted snapshot created; repositories={result.repository_count}; failed={result.failed_count}")
         return 0 if result.complete else 1
     except BackupError as error:
