@@ -7,8 +7,9 @@
 | App authentication, inventory, LFS and metadata sources | PR #5 merged | 50 tests and public recovery smoke passed CI; private grants pending |
 | S3/B2 versioned compliance vaults, chunks and resume | PR #6 merged | Native failure/retention/version-recovery fixtures; real cloud enforcement pending |
 | Separate agents and signed independent witnessing | PR #7 merged | 67 tests, including signature/rollback/native-readback and real rclone agent fixtures; host isolation pending |
-| SQLite/PostgreSQL and remote object/document sources | PR #8 | 79 local tests (one real PostgreSQL integration deferred to required CI); source enrollment pending |
-| Monitoring, offline recovery and retention operations | Continuing next | Not yet a production claim |
+| SQLite/PostgreSQL and remote object/document sources | PR #8 merged | 79 tests including real isolated PostgreSQL export/restore passed CI; source enrollment pending |
+| Independent signed-evidence monitor and alert integration | PR #9 | 86-test suite; stale/gap/rollback/required-copy/offline/webhook fixtures; real alert endpoint pending |
+| Offline recovery kits and retention operations | Continuing next | Not yet a production claim |
 
 See implementation-log.md for completed behavior and GITHUB_EXPORTS.md / VAULTS.md
 for required scopes, policies, format migration and provider-specific limitations.

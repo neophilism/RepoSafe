@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly RepoSafe health and external alert heartbeat
+
+[Timer]
+OnBootSec=5m
+OnUnitInactiveSec=1h
+Unit=reposafe-monitor.service
+
+[Install]
+WantedBy=timers.target
