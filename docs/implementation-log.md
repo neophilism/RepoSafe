@@ -1,0 +1,20 @@
+# Continuing implementation
+
+## Source completion — PR #5 (H2–H5)
+
+Added read-only GitHub App token minting/refresh and owner-installation checks,
+hash-pinned expected inventory with explicit retirement, exact Git/HEAD evidence,
+LFS content verification, gitlink inventory, optional wiki mirrors, and bounded
+exports for issues/PRs/reviews/threads, releases/binary assets, discussions/replies,
+settings and available Actions artifacts/logs. Every selected export is part of
+the capture completion boundary. See GITHUB_EXPORTS.md for scopes and limitations.
+
+Tests include signed JWT verification, token expiry/permissions, incomplete owner
+grants, registry replacement, LFS corruption, metadata failure/budget behavior,
+GraphQL cursor safety and binary redirect credential stripping. Existing real Git,
+age, rclone and safe-restore tests remain required. Real private-owner App visibility
+and selected API scopes remain deployment acceptance tests requiring runtime grants.
+
+The owner requested continued implementation beyond H1. Later code stages continue;
+paid storage, permanent recovery-key custody and real cloud acceptance are separate
+from committing tested source code.

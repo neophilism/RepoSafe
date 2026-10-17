@@ -9,6 +9,11 @@ description = "Encrypted, independently recoverable GitHub backups"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+security = ["cryptography>=44,<48"]
+vault = ["boto3>=1.36,<2"]
+all = ["cryptography>=44,<48", "boto3>=1.36,<2"]
+
 [project.scripts]
 reposafe = "reposafe.cli:main"
 
