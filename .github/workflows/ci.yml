@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install -y age git-lfs rclone
       - name: Compile and test
         run: |
-          python -m pip install 'cryptography>=44,<48'
+          python -m pip install 'cryptography>=44,<48' 'boto3>=1.36,<2'
           python -m compileall -q reposafe tests
           python -m unittest discover -s tests -v
       - name: Live public repository recovery smoke

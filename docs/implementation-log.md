@@ -18,3 +18,11 @@ and selected API scopes remain deployment acceptance tests requiring runtime gra
 The owner requested continued implementation beyond H1. Later code stages continue;
 paid storage, permanent recovery-key custody and real cloud acceptance are separate
 from committing tested source code.
+
+## Native vaults and bounded transfers — PR #6 (H6/H7/H11)
+
+Native S3/B2 account, private access, version and COMPLIANCE checks, per-version
+read-back, receipt-last publication, idempotent resume and exact-version recovery
+are implemented. Added independently encrypted v3 chunks, disk/size checks and a
+reviewable AWS template. See VAULTS.md. All 58 local tests pass, including an installed boto3 request-model check; real provider
+capability/retention/permission enforcement still needs authorized cloud accounts.

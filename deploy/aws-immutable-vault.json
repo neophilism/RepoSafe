@@ -1,0 +1,50 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "RepoSafe private versioned compliance vault. Review costs and irreversible retention before applying.",
+  "Parameters": {
+    "BucketName": {"Type": "String", "AllowedPattern": "[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]"},
+    "RetentionDays": {"Type": "Number", "Default": 90, "MinValue": 1, "MaxValue": 3650},
+    "KeyPrefix": {"Type": "String", "Default": "reposafe", "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9_-]{0,63}"},
+    "WriterPrincipalArn": {"Type": "String", "AllowedPattern": "arn:aws:iam::[0-9]{12}:(user|role)/.+"}
+  },
+  "Resources": {
+    "Vault": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": {"Ref": "BucketName"},
+        "VersioningConfiguration": {"Status": "Enabled"},
+        "ObjectLockEnabled": true,
+        "ObjectLockConfiguration": {"ObjectLockEnabled": "Enabled", "Rule": {"DefaultRetention": {"Mode": "COMPLIANCE", "Days": {"Ref": "RetentionDays"}}}},
+        "OwnershipControls": {"Rules": [{"ObjectOwnership": "BucketOwnerEnforced"}]},
+        "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "IgnorePublicAcls": true, "BlockPublicPolicy": true, "RestrictPublicBuckets": true},
+        "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}
+      }
+    },
+    "TLSOnly": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {"Ref": "Vault"},
+        "PolicyDocument": {"Version": "2012-10-17", "Statement": [{
+          "Sid": "DenyInsecureTransport", "Effect": "Deny", "Principal": "*", "Action": "s3:*",
+          "Resource": [{"Fn::GetAtt": ["Vault", "Arn"]}, {"Fn::Sub": "${Vault.Arn}/*"}],
+          "Condition": {"Bool": {"aws:SecureTransport": "false"}}
+        }]}
+      }
+    },
+    "WriterRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "WriterPrincipalArn"}}, "Action": "sts:AssumeRole"}]},
+        "Policies": [{"PolicyName": "RepoSafeVersionWriter", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+          {"Effect": "Allow", "Action": ["s3:GetBucketVersioning", "s3:GetBucketObjectLockConfiguration", "s3:GetBucketPublicAccessBlock"], "Resource": {"Fn::GetAtt": ["Vault", "Arn"]}},
+          {"Effect": "Allow", "Action": ["s3:ListBucket", "s3:ListBucketVersions"], "Resource": {"Fn::GetAtt": ["Vault", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": {"Fn::Sub": "${KeyPrefix}/*"}}}},
+          {"Effect": "Allow", "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectRetention"], "Resource": {"Fn::Sub": "${Vault.Arn}/${KeyPrefix}/*"}},
+          {"Effect": "Deny", "Action": ["s3:DeleteObject", "s3:DeleteObjectVersion", "s3:PutObjectRetention", "s3:BypassGovernanceRetention", "s3:PutObjectLegalHold", "s3:PutBucketVersioning", "s3:PutBucketObjectLockConfiguration", "s3:PutLifecycleConfiguration", "s3:DeleteBucket", "s3:PutBucketPolicy", "s3:PutBucketPublicAccessBlock", "s3:PutBucketAcl"], "Resource": [{"Fn::GetAtt": ["Vault", "Arn"]}, {"Fn::Sub": "${Vault.Arn}/*"}]}
+        ]}}]
+      }
+    }
+  },
+  "Outputs": {"VaultBucket": {"Value": {"Ref": "Vault"}}, "WriterRoleArn": {"Value": {"Fn::GetAtt": ["WriterRole", "Arn"]}}}
+}

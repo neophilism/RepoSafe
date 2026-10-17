@@ -78,6 +78,8 @@ Restore checks every content hash, rejects unsafe entries and requires a new out
 directory. Local verify/restore need no config or GitHub token. Partial snapshots
 require `--allow-partial`.
 
-Immutable vaults, separate delivery hosts, signed witnessing and independent alarms
-remain later PRs. Activation needs runtime credentials and the public recipient
+Native immutable vaults and chunked transfers are implemented; see [VAULTS.md](docs/VAULTS.md).
+Separate delivery hosts, signed witnessing and independent alarms continue next. Activation needs runtime credentials and the public recipient
 of a recovery identity retained offline by the owner.
+
+Additional source metadata/App authentication: [GITHUB_EXPORTS.md](docs/GITHUB_EXPORTS.md).

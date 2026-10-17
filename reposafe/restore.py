@@ -86,10 +86,11 @@ def restore(directory, identity, output, *, trusted_sha256=None, allow_partial=F
     if type(maximum_bytes) is not int or maximum_bytes < 1 or maximum_members < 1:
         raise BackupError("invalid restore limits")
     receipt = verify_snapshot(directory)
-    if receipt["schema_version"] != 2:
-        raise BackupError("safe restore requires v2; use documented manual v1 recovery")
+    if receipt["schema_version"] not in (2, 3):
+        raise BackupError("safe restore requires v2/v3; use documented manual v1 recovery")
     ciphertext = Path(directory) / "snapshot.tar.gz.age"
-    if trusted_sha256 is not None and (not SHA256.fullmatch(trusted_sha256) or sha256(ciphertext) != trusted_sha256):
+    trusted_target = Path(directory) / "receipt.json" if receipt["schema_version"] == 3 else ciphertext
+    if trusted_sha256 is not None and (not SHA256.fullmatch(trusted_sha256) or sha256(trusted_target) != trusted_sha256):
         raise BackupError("ciphertext does not match independently trusted digest")
     if not receipt["complete"] and not allow_partial:
         raise BackupError("partial snapshot requires explicit --allow-partial")
@@ -102,7 +103,22 @@ def restore(directory, identity, output, *, trusted_sha256=None, allow_partial=F
         created = True
         with tempfile.TemporaryDirectory(prefix=".reposafe-decrypt-", dir=output.parent) as raw:
             archive = Path(raw) / "snapshot.tar.gz"
-            command(["age", "-d", "-i", identity, "-o", archive, ciphertext])
+            if receipt["schema_version"] == 3:
+                if receipt["compressed_bytes"] > maximum_bytes + maximum_members * 1024:
+                    raise BackupError("decrypted archive would exceed restore storage budget")
+                with archive.open("xb") as joined:
+                    for entry in receipt["files"]:
+                        part = Path(raw) / "part"
+                        command(["age", "-d", "-i", identity, "-o", part, Path(directory) / entry["name"]])
+                        if joined.tell() + part.stat().st_size > receipt["compressed_bytes"]:
+                            raise BackupError("decrypted chunks exceed declared archive size")
+                        with part.open("rb") as incoming:
+                            shutil.copyfileobj(incoming, joined, length=1024 * 1024)
+                        part.unlink()
+                if archive.stat().st_size != receipt["compressed_bytes"]:
+                    raise BackupError("decrypted chunk set is incomplete")
+            else:
+                command(["age", "-d", "-i", identity, "-o", archive, ciphertext])
             root = extract_safely(archive, output, maximum_bytes=maximum_bytes, maximum_members=maximum_members)
             manifest = verify_contents(root, run_id=receipt["run_id"])
             if manifest["complete"] != receipt["complete"]:
