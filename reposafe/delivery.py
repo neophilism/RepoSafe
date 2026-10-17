@@ -5,6 +5,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from datetime import datetime
 
 from .common import BackupError, command, sha256
 
@@ -15,20 +16,27 @@ def verify_snapshot(directory):
     directory = Path(directory)
     try:
         receipt_path = directory / "receipt.json"
-        if directory.is_symlink() or receipt_path.is_symlink() or receipt_path.stat().st_size > 1024 * 1024:
+        if directory.is_symlink() or receipt_path.is_symlink() or not receipt_path.is_file() or receipt_path.stat().st_size > 8 * 1024 * 1024:
             raise ValueError
         receipt = json.loads(receipt_path.read_text())
-        if receipt["schema_version"] not in (1, 2) or not RUN_ID.fullmatch(receipt["run_id"]):
+        if receipt["schema_version"] not in (1, 2, 3) or not RUN_ID.fullmatch(receipt["run_id"]):
             raise ValueError
+        datetime.strptime(receipt["run_id"][:16], "%Y%m%dT%H%M%SZ")
         if type(receipt["complete"]) is not bool or type(receipt["repositories"]) is not int or receipt["repositories"] < 0:
             raise ValueError
-        if len(receipt["files"]) != 1 or receipt["files"][0]["name"] != "snapshot.tar.gz.age":
+        entries = receipt["files"]
+        if not isinstance(entries, list) or not 1 <= len(entries) <= 10000:
             raise ValueError
-        entry = receipt["files"][0]
-        payload = directory / entry["name"]
-        if type(entry["bytes"]) is not int or entry["bytes"] < 1:
+        expected_names = ([f"chunk-{i:06d}.age" for i in range(len(entries))] if receipt["schema_version"] == 3 else ["snapshot.tar.gz.age"])
+        if [entry["name"] for entry in entries] != expected_names:
             raise ValueError
-        if payload.is_symlink() or payload.stat().st_size != entry["bytes"] or sha256(payload) != entry["sha256"]:
+        for entry in entries:
+            payload = directory / entry["name"]
+            if type(entry["bytes"]) is not int or entry["bytes"] < 1:
+                raise ValueError
+            if payload.is_symlink() or payload.stat().st_size != entry["bytes"] or sha256(payload) != entry["sha256"]:
+                raise ValueError
+        if receipt["schema_version"] == 3 and (receipt["archive_format"] != "tar.gz" or type(receipt["compressed_bytes"]) is not int or receipt["compressed_bytes"] < 1):
             raise ValueError
         return receipt
     except (OSError, ValueError, TypeError, KeyError, RecursionError):
@@ -40,6 +48,7 @@ class Delivery:
     name: str
     required: bool
     verified: bool
+    evidence: dict | None = None
 
 
 class Rclone:
@@ -53,20 +62,28 @@ class Rclone:
         if self.config_file:
             flags.extend(["--config", self.config_file])
         # Only these explicit filenames can leave the runner; extra local files cannot leak.
-        for filename in ("snapshot.tar.gz.age", "receipt.json"):
+        receipt = verify_snapshot(directory)
+        for filename in (*[entry["name"] for entry in receipt["files"]], "receipt.json"):
             selection = ["--include", "/" + filename]
             self.runner(["rclone", "copy", directory, target, "--immutable", "--no-update-modtime", *selection, *flags])
             self.runner(["rclone", "check", directory, target, "--one-way", "--download", *selection, *flags])
+        return {"provider": "rclone", "objects": receipt["files"], "immutability": "client overwrite guard only"}
 
 
 def deliver_all(directory, destinations, *, transport=None):
     receipt = verify_snapshot(directory)
-    transport = transport or Rclone()
     results = []
     for destination in destinations:
         try:
-            transport.deliver(Path(directory), destination, receipt["run_id"])
-            results.append(Delivery(destination.name, destination.required, True))
+            if transport is not None:
+                selected = transport
+            elif destination.kind == "rclone":
+                selected = Rclone()
+            else:
+                from .vault import ObjectVault
+                selected = ObjectVault(destination)
+            evidence = selected.deliver(Path(directory), destination, receipt["run_id"])
+            results.append(Delivery(destination.name, destination.required, True, evidence))
         except BackupError:
             # Continue to other providers even after a required provider fails.
             results.append(Delivery(destination.name, destination.required, False))

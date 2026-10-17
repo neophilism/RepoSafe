@@ -14,16 +14,16 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | Bootstrap | B2 | B1 | Daily Drive/Dropbox copy and verification | PR #2 merged |
 | Design | H0 | B2 | Technical architecture, full plan, decisions and acceptance boundaries | This documentation PR |
 | Foundation | H1 | H0 | Independent runner, source interface/files, durable coverage state, safe offline recovery | PR #4 |
-| Source identity | H2 | H1 | GitHub App tokens and independently reconciled owner inventory | Planned |
-| Git fidelity | H3 | H2 | Ref maps, LFS validation, submodule/wikis and repository lifecycle handling | Planned |
-| Metadata | H4 | H3 | Issues/PR/review/comment/label/milestone exporters | Planned |
-| Metadata | H5 | H4 | Releases/assets, discussions, settings and ephemeral artifacts | Planned |
-| Immutability | H6 | H1 | Native S3 vault adapter, version catalog and fail-closed retention checks | Planned |
-| Provider diversity | H7 | H6 | B2 compliance vault and independent permission verification | Planned |
+| Source identity | H2 | H1 | GitHub App tokens and independently reconciled owner inventory | Implemented in PR #5; live acceptance pending |
+| Git fidelity | H3 | H2 | Ref maps, LFS validation, submodule/wikis and repository lifecycle handling | Implemented in PR #5; live acceptance pending |
+| Metadata | H4 | H3 | Issues/PR/review/comment/label/milestone exporters | Implemented in PR #5; live acceptance pending |
+| Metadata | H5 | H4 | Releases/assets, discussions, settings and ephemeral artifacts | Implemented in PR #5; live acceptance pending |
+| Immutability | H6 | H1 | Native S3 vault adapter, version catalog and fail-closed retention checks | Implemented in PR #6; cloud acceptance pending |
+| Provider diversity | H7 | H6 | B2 compliance vault and independent permission verification | Implemented in PR #6; cloud acceptance pending |
 | Isolation | H8 | H2, H6 | Collector/delivery separation, least-privilege roles and isolated runtime packaging | Planned |
 | Provenance | H9 | H6, H8 | Signed receipts, independent witness and rollback detection | Planned |
 | Other data | H10 | H1 | Database-consistent PostgreSQL/SQLite exports and object/document adapters | Planned |
-| Scale | H11 | H3, H6 | Chunked resumable transfer and capacity policies; measured hot-tier decision | Planned |
+| Scale | H11 | H3, H6 | Chunked resumable transfer and capacity policies; measured hot-tier decision | Implemented in PR #6; cloud acceptance pending |
 | Operations | H12 | H6, H7, H9 | Independent freshness/retention monitoring and failure alerting | Planned |
 | Offline | H13 | H9, H11 | Rotated offline export, complete recovery kit and media verification | Planned |
 | Retention | H14 | H9, H11, H12 | Separately authorized retention maintenance and budget reporting | Planned |

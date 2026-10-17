@@ -1,5 +1,6 @@
 import os
 import secrets
+import shutil
 import tarfile
 import tempfile
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from .format import content_inventory
 from .gitdata import evidence
 from .inventory import registry_ids
 from .metadata import export_repository
+from .chunks import encrypt_archive
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,8 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
     with tempfile.TemporaryDirectory(prefix="reposafe-", dir=config.work_dir) as raw:
         root = Path(raw)
         os.chmod(root, 0o700)
+        if shutil.disk_usage(root).free < config.minimum_free_bytes:
+            raise BackupError("insufficient free scratch storage")
         payload = root / "payload"
         payload.mkdir(mode=0o700)
         askpass = root / "askpass"
@@ -110,21 +114,26 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
             "coverage": "Git mirrors, LFS when enabled, repository metadata; see docs/COVERAGE.md",
         })
         content_inventory(payload)
+        size = sum(p.stat().st_size for p in payload.rglob("*") if p.is_file())
+        if size > config.maximum_snapshot_bytes:
+            raise BackupError("snapshot exceeds its total byte budget")
+        if shutil.disk_usage(root).free < size + config.minimum_free_bytes:
+            raise BackupError("insufficient scratch space for archive packaging")
         archive = root / "snapshot.tar.gz"
         with tarfile.open(archive, "w:gz") as bundle:
             bundle.add(payload, arcname="snapshot", recursive=True)
-        ciphertext = destination / "snapshot.tar.gz.age"
-        recipients = [a for r in config.recipients for a in ("-r", r)]
+        if shutil.disk_usage(destination).free < archive.stat().st_size + config.minimum_free_bytes:
+            raise BackupError("insufficient output space for ciphertext")
         try:
-            command(["age", "--encrypt", *recipients, "-o", ciphertext, archive])
-            ciphertext.chmod(0o600)
+            entries = encrypt_archive(archive, destination, config.recipients, config.chunk_bytes)
             write_json(destination / "receipt.json", {
-                "schema_version": 2, "run_id": run_id, "complete": complete,
+                "schema_version": 3 if config.chunk_bytes else 2, "run_id": run_id, "complete": complete,
                 "repositories": len(inventory), "failed": failed,
                 "missing_repositories": len(missing), "sources": len(sources),
-                "files": [{"name": ciphertext.name, "sha256": sha256(ciphertext), "bytes": ciphertext.stat().st_size}],
+                "files": entries, "archive_format": "tar.gz", "compressed_bytes": archive.stat().st_size,
             })
         except BackupError:
-            ciphertext.unlink(missing_ok=True)
+            for ciphertext in destination.glob("*.age"):
+                ciphertext.unlink(missing_ok=True)
             raise
     return Capture(destination, run_id, complete, len(inventory), failed, repository_ids, len(missing))
