@@ -195,7 +195,7 @@ class ObjectVault:
         return self.verify_version(key, version, expected_hash, expected_size)
 
     def deliver(self, directory, destination, run_id):
-        from .delivery import verify_snapshot
+        from .delivery import verify_snapshot, transfer_files
         receipt = verify_snapshot(directory)
         self.retention_anchor = datetime.strptime(run_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
         self.inspect()
@@ -204,6 +204,9 @@ class ObjectVault:
             for entry in receipt["files"]:
                 objects.append(self.store(directory / entry["name"], run_id,
                                           expected_hash=entry["sha256"], expected_size=entry["bytes"]))
+            if "receipt.sig.json" in transfer_files(directory, receipt):
+                path = directory / "receipt.sig.json"
+                objects.append(self.store(path, run_id, expected_hash=sha256(path), expected_size=path.stat().st_size))
             # Only a completely checked payload can be followed by a completion receipt.
             path = directory / "receipt.json"
             objects.append(self.store(path, run_id, expected_hash=sha256(path), expected_size=path.stat().st_size))
@@ -214,7 +217,7 @@ class ObjectVault:
         except Exception:
             raise BackupError("vault transfer or per-version retention verification failed") from None
 
-    def retrieve(self, output, receipt, evidence):
+    def retrieve(self, output, receipt, evidence, *, maximum_bytes=100 * 1024 ** 3, minimum_free_bytes=128 * 1024 ** 2):
         """Fetch exact versions from a separately authenticated delivery catalog."""
         from pathlib import Path
         import shutil
@@ -235,6 +238,13 @@ class ObjectVault:
             expected = {entry["name"]: entry for entry in receipt["files"]}
             expected["receipt.json"] = None
             records = evidence["objects"]
+            if (not isinstance(records, list) or not all(isinstance(r, dict) and type(r.get("bytes")) is int and
+                    r["bytes"] > 0 for r in records) or sum(r["bytes"] for r in records) > maximum_bytes):
+                raise BackupError("catalog recovery exceeds its byte budget")
+            if shutil.disk_usage(output.parent).free < sum(r["bytes"] for r in records) + minimum_free_bytes:
+                raise BackupError("insufficient disk space for vault recovery")
+            if any(r["key"].endswith("/receipt.sig.json") for r in records):
+                expected["receipt.sig.json"] = None
             if evidence["bucket"] != self.destination.bucket or len(records) != len(expected):
                 raise BackupError("catalog does not match destination or file set")
             output.mkdir(mode=0o700)

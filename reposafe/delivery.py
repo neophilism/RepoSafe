@@ -12,13 +12,8 @@ from .common import BackupError, command, sha256
 RUN_ID = re.compile(r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{16}\Z")
 
 
-def verify_snapshot(directory):
-    directory = Path(directory)
+def receipt_shape(receipt):
     try:
-        receipt_path = directory / "receipt.json"
-        if directory.is_symlink() or receipt_path.is_symlink() or not receipt_path.is_file() or receipt_path.stat().st_size > 8 * 1024 * 1024:
-            raise ValueError
-        receipt = json.loads(receipt_path.read_text())
         if receipt["schema_version"] not in (1, 2, 3) or not RUN_ID.fullmatch(receipt["run_id"]):
             raise ValueError
         datetime.strptime(receipt["run_id"][:16], "%Y%m%dT%H%M%SZ")
@@ -27,17 +22,30 @@ def verify_snapshot(directory):
         entries = receipt["files"]
         if not isinstance(entries, list) or not 1 <= len(entries) <= 10000:
             raise ValueError
-        expected_names = ([f"chunk-{i:06d}.age" for i in range(len(entries))] if receipt["schema_version"] == 3 else ["snapshot.tar.gz.age"])
-        if [entry["name"] for entry in entries] != expected_names:
+        names = ([f"chunk-{i:06d}.age" for i in range(len(entries))] if receipt["schema_version"] == 3 else ["snapshot.tar.gz.age"])
+        if [entry["name"] for entry in entries] != names:
             raise ValueError
         for entry in entries:
-            payload = directory / entry["name"]
-            if type(entry["bytes"]) is not int or entry["bytes"] < 1:
-                raise ValueError
-            if payload.is_symlink() or payload.stat().st_size != entry["bytes"] or sha256(payload) != entry["sha256"]:
+            if type(entry["bytes"]) is not int or entry["bytes"] < 1 or not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]):
                 raise ValueError
         if receipt["schema_version"] == 3 and (receipt["archive_format"] != "tar.gz" or type(receipt["compressed_bytes"]) is not int or receipt["compressed_bytes"] < 1):
             raise ValueError
+        return entries
+    except (ValueError, TypeError, KeyError):
+        raise BackupError("snapshot receipt schema is invalid") from None
+
+
+def verify_snapshot(directory):
+    directory = Path(directory)
+    try:
+        receipt_path = directory / "receipt.json"
+        if directory.is_symlink() or receipt_path.is_symlink() or not receipt_path.is_file() or receipt_path.stat().st_size > 8 * 1024 ** 2:
+            raise ValueError
+        receipt = json.loads(receipt_path.read_text())
+        for entry in receipt_shape(receipt):
+            payload = directory / entry["name"]
+            if payload.is_symlink() or not payload.is_file() or payload.stat().st_size != entry["bytes"] or sha256(payload) != entry["sha256"]:
+                raise ValueError
         return receipt
     except (OSError, ValueError, TypeError, KeyError, RecursionError):
         raise BackupError("snapshot integrity or receipt validation failed") from None
@@ -49,6 +57,19 @@ class Delivery:
     required: bool
     verified: bool
     evidence: dict | None = None
+
+
+def transfer_files(directory, receipt):
+    names = [entry["name"] for entry in receipt["files"]]
+    signature = Path(directory) / "receipt.sig.json"
+    if signature.exists() or signature.is_symlink():
+        from .signing import envelope_shape, read_regular
+        try:
+            envelope_shape(json.loads(read_regular(signature, 4096)), sha256(Path(directory) / "receipt.json"), "collector-receipt")
+        except (ValueError, TypeError, RecursionError):
+            raise BackupError("invalid collector signature envelope") from None
+        names.append("receipt.sig.json")
+    return [*names, "receipt.json"]
 
 
 class Rclone:
@@ -63,7 +84,7 @@ class Rclone:
             flags.extend(["--config", self.config_file])
         # Only these explicit filenames can leave the runner; extra local files cannot leak.
         receipt = verify_snapshot(directory)
-        for filename in (*[entry["name"] for entry in receipt["files"]], "receipt.json"):
+        for filename in transfer_files(directory, receipt):
             selection = ["--include", "/" + filename]
             self.runner(["rclone", "copy", directory, target, "--immutable", "--no-update-modtime", *selection, *flags])
             self.runner(["rclone", "check", directory, target, "--one-way", "--download", *selection, *flags])

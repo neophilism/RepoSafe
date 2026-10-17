@@ -1,0 +1,31 @@
+[Unit]
+Description=RepoSafe isolated %i writer queue
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=reposafe-writer
+Group=reposafe-writer
+WorkingDirectory=/opt/reposafe/current
+EnvironmentFile=/etc/reposafe/writer.env
+ExecStart=/opt/reposafe/venv/bin/reposafe --config /etc/reposafe/writer.toml agent-queue --inbox /srv/reposafe-inbox --destination %i --state-dir /var/lib/reposafe-writer/state --collector-key /etc/reposafe/pins/collector --writer-key /etc/reposafe/keys/writer.pem
+UMask=0077
+StateDirectory=reposafe-writer
+StateDirectoryMode=0700
+ReadOnlyPaths=/srv/reposafe-inbox
+ReadWritePaths=/var/lib/reposafe-writer
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TimeoutStartSec=5h
+KillMode=control-group

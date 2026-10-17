@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry independent RepoSafe witnessing
+
+[Timer]
+OnBootSec=10m
+OnUnitInactiveSec=15m
+Unit=reposafe-witness.service
+
+[Install]
+WantedBy=timers.target

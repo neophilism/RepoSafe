@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry isolated RepoSafe %i delivery
+
+[Timer]
+OnBootSec=5m
+OnUnitInactiveSec=15m
+Unit=reposafe-writer@%i.service
+
+[Install]
+WantedBy=timers.target

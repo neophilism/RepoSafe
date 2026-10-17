@@ -79,7 +79,7 @@ directory. Local verify/restore need no config or GitHub token. Partial snapshot
 require `--allow-partial`.
 
 Native immutable vaults and chunked transfers are implemented; see [VAULTS.md](docs/VAULTS.md).
-Separate delivery hosts, signed witnessing and independent alarms continue next. Activation needs runtime credentials and the public recipient
+Separate delivery agents and signed witnessing are implemented; see [PROVENANCE.md](docs/PROVENANCE.md). Independent alarms continue next. Activation needs runtime credentials and the public recipient
 of a recovery identity retained offline by the owner.
 
 Additional source metadata/App authentication: [GITHUB_EXPORTS.md](docs/GITHUB_EXPORTS.md).

@@ -57,7 +57,8 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
     repository_ids = tuple(repo["id"] for repo in inventory)
     registered, retired = registry_ids(config)
     missing = sorted(((set(expected_repository_ids) | registered) - retired) - set(repository_ids))
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(8)
+    captured_at = datetime.now(timezone.utc)
+    run_id = captured_at.strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(8)
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
     destination = output / run_id
@@ -107,6 +108,7 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
         complete = failed == 0 and not missing
         write_json(payload / "manifest.json", {
             "schema_version": 2, "run_id": run_id, "complete": complete,
+            "captured_at": captured_at.isoformat(),
             "include_lfs": config.include_lfs, "repositories": outcomes,
             "sources": sources, "missing_repository_ids": missing,
             "metadata_groups": list(config.metadata), "wiki_requested": config.wiki,
@@ -126,13 +128,22 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
             raise BackupError("insufficient output space for ciphertext")
         try:
             entries = encrypt_archive(archive, destination, config.recipients, config.chunk_bytes)
-            write_json(destination / "receipt.json", {
+            pending = destination / "receipt.pending.json"
+            write_json(pending, {
                 "schema_version": 3 if config.chunk_bytes else 2, "run_id": run_id, "complete": complete,
+                "captured_at": captured_at.isoformat(),
                 "repositories": len(inventory), "failed": failed,
                 "missing_repositories": len(missing), "sources": len(sources),
                 "files": entries, "archive_format": "tar.gz", "compressed_bytes": archive.stat().st_size,
             })
+            key = os.environ.get("REPOSAFE_COLLECTOR_SIGNING_KEY_FILE")
+            if key:
+                from .signing import sign_file
+                sign_file(pending, key, destination / "receipt.sig.json", "collector-receipt")
+            pending.replace(destination / "receipt.json")
         except BackupError:
+            (destination / "receipt.pending.json").unlink(missing_ok=True)
+            (destination / "receipt.sig.json").unlink(missing_ok=True)
             for ciphertext in destination.glob("*.age"):
                 ciphertext.unlink(missing_ok=True)
             raise
