@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll RepoSafe catalogs feed
+
+[Timer]
+OnBootSec=2m
+OnUnitInactiveSec=15m
+Unit=reposafe-feed-witness@%i.service
+
+[Install]
+WantedBy=timers.target

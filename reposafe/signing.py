@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .common import BackupError, sha256, write_json
 
-PURPOSES = {"collector-receipt", "writer-catalog", "witness-event", "coverage-registry", "recovery-kit", "offline-media", "offline-copy"}
+PURPOSES = {"collector-receipt", "writer-catalog", "witness-event", "coverage-registry", "recovery-kit", "offline-media", "offline-copy", "production-acceptance"}
 
 
 def crypto():
@@ -149,4 +149,11 @@ def generate_keys(output):
         with path.open("xb") as target:
             path.chmod(0o600)
             target.write(value)
+            target.flush()
+            os.fsync(target.fileno())
+    descriptor = os.open(output, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
     return key_id(key.public_key())

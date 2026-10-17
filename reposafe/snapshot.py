@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .common import BackupError, command, sha256, write_json
+from .common import BackupError, command, sha256, write_json, command_guard, storage_check
 from .sources import FileCollector
 from .format import content_inventory
 from .gitdata import evidence
@@ -64,7 +64,8 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
     destination = output / run_id
     destination.mkdir(mode=0o700)
-    with tempfile.TemporaryDirectory(prefix="reposafe-", dir=config.work_dir) as raw:
+    with tempfile.TemporaryDirectory(prefix="reposafe-", dir=config.work_dir) as raw, command_guard(
+            lambda: storage_check(Path(raw), config.maximum_snapshot_bytes * 3 + 64 * 1024 ** 2, config.minimum_free_bytes)):
         root = Path(raw)
         os.chmod(root, 0o700)
         if shutil.disk_usage(root).free < config.minimum_free_bytes:

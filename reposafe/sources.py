@@ -28,22 +28,25 @@ class FileCollector:
         if os.name != "posix" or not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
             raise BackupError("safe file collection requires a POSIX host with no-follow support")
         source = self.source.path
-        copied = total = 0
+        copied = total = visited = 0
         root = source.resolve()
         if any(root == p or root in p.parents or p in root.parents for p in self.forbidden):
             raise BackupError("file source overlaps backup output, state or scratch")
 
         def excluded(relative):
-            return any(fnmatch.fnmatchcase(relative, p) or PurePosixPath(relative).match(p)
+            return any(fnmatch.fnmatchcase(relative, p) or PurePosixPath(relative).match(p) or p.endswith("/**") and relative == p[:-3]
                        for p in self.source.exclude)
 
         flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
         directory_flags = flags | os.O_DIRECTORY
 
         def visit(parent_fd, name, target, relative):
-            nonlocal copied, total
+            nonlocal copied, total, visited
             if relative and excluded(relative):
                 return
+            visited += 1
+            if visited > self.source.maximum_entries:
+                raise BackupError("file source exceeds configured entry budget")
             info = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
             if stat.S_ISDIR(info.st_mode):
                 target.mkdir(mode=0o700)
@@ -52,7 +55,12 @@ class FileCollector:
                     if fingerprint(os.fstat(descriptor)) != fingerprint(info):
                         raise BackupError("file source directory changed before capture")
                     with os.scandir(descriptor) as listing:
-                        names = sorted(entry.name for entry in listing)
+                        names = []
+                        for entry in listing:
+                            if len(names) >= self.source.maximum_entries:
+                                raise BackupError("file source directory exceeds its entry budget")
+                            names.append(entry.name)
+                        names.sort()
                     for child in names:
                         visit(descriptor, child, target / child, f"{relative}/{child}".lstrip("/"))
                     if fingerprint(os.fstat(descriptor)) != fingerprint(info):
@@ -101,7 +109,7 @@ class FileCollector:
                 visit(descriptor, source.name, destination, "" if stat.S_ISDIR(info.st_mode) else source.name)
             finally:
                 os.close(descriptor)
-            return {"files": copied, "bytes": total,
+            return {"files": copied, "bytes": total, "entries": visited,
                     "consistency": "checked per-file copy; not a filesystem/database transaction"}
         except (OSError, ValueError):
             raise BackupError("file source unavailable or changed during capture") from None

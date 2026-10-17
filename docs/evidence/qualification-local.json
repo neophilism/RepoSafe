@@ -1,0 +1,24 @@
+{
+  "chunks": 33,
+  "ciphertext_bytes": 33594244,
+  "fixture_bytes": 33554432,
+  "kind": "synthetic-local-qualification",
+  "limits": "local synthetic size/timings only; no physical offline media, network namespace, production throughput or provider-enforced retention qualification",
+  "local_copy_corruption_isolated": true,
+  "passed": true,
+  "real_account_credentials_used": false,
+  "real_cloud_provider_qualified": false,
+  "recovery_checks": {
+    "git_mirrors": 1,
+    "postgres_archive_catalogs": 0,
+    "sqlite_databases": 0
+  },
+  "schema_version": 1,
+  "source_ref_change_survived": true,
+  "timings": {
+    "capture_seconds": 1.215,
+    "offline_restore_seconds": 0.239,
+    "two_local_delivery_seconds": 5.604
+  },
+  "wrong_identity_rejected": true
+}

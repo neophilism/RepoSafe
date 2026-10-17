@@ -65,6 +65,7 @@ class RecoveryTests(unittest.TestCase):
         output = self.root / "restore"
         manifest = restore(result.directory, self.key, output, trusted_sha256=digest)
         self.assertTrue(manifest["complete"])
+        self.assertEqual(1, manifest["recovery_checks"]["git_mirrors"])
         recovered = output / "snapshot/repositories/1/mirror.git"
         command(["git", "-C", recovered, "fsck", "--full", "--strict"])
         self.assertEqual(expected, command(["git", "-C", recovered, "show-ref"]))
@@ -98,6 +99,7 @@ class RecoveryTests(unittest.TestCase):
         output = self.root / "database-restore"
         manifest = restore(result.directory, self.key, output)
         self.assertTrue(manifest["complete"])
+        self.assertEqual(1, manifest["recovery_checks"]["sqlite_databases"])
         with sqlite3.connect(output / "snapshot/datasets/db/database.sqlite") as db:
             self.assertEqual("recover database contents", db.execute("SELECT value FROM records").fetchone()[0])
         self.config = replace(self.config, datasets=(Dataset("db", "sqlite", self.root / "missing-database"),))

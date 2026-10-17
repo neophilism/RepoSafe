@@ -68,3 +68,18 @@ checks and user-supplied storage-rate forecasts. No delete executor is shipped.
 The local 95-test suite passes (PostgreSQL required in CI). See OFFLINE.md/RETENTION.md;
 physical media, OS/runtime compatibility and disconnected clean-machine recovery
 remain actual deployment acceptance, not claims from fixtures.
+
+## Recovery/release qualification and activation tooling — PR #11 (H15/H16 tooling)
+
+Added default offline Git/LFS and database structure checks, external-object-store
+rejection, bounded tool process groups/staging entries/free-space guards, no-follow
+source credential/registry reads and explicit file entry budgets. Added unattended
+read-only SFTP feeds with independent host-key pins and no remote hash shell commands.
+Added role doctor, tool/dependency inventory, exact hash locks, local wheel build,
+Python 3.11/3.12/3.13 CI, measured synthetic recovery, private pending acceptance
+templates and verification of owner-signed real evidence. See RELEASE.md,
+QUALIFICATION.md and ACTIVATION.md. All 106 local tests pass with PostgreSQL required
+in CI. A 32 MiB/33-chunk local drill passed; pinned runtime/build advisory scans
+reported no known findings at the recorded check. Actual production H16 is pending
+credentials, offline public recipients, authorized independent hosts, cost/account
+approval, alert routing and physical media. No production success is fabricated.

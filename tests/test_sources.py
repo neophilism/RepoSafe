@@ -10,6 +10,16 @@ from reposafe.sources import FileCollector
 
 
 class FileSourceTests(unittest.TestCase):
+    def test_many_empty_files_cannot_escape_byte_limits_via_entry_exhaustion(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            source = root / "source"
+            source.mkdir()
+            for name in ("a", "b", "c"):
+                (source / name).touch()
+            with self.assertRaisesRegex(BackupError, "entry budget"):
+                FileCollector(FileSource("files", source, maximum_entries=2)).collect(root / "copy")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)

@@ -1,7 +1,9 @@
 """An operator-controlled, hash-pinned coverage registry supplements local history."""
 
 import json
+import hashlib
 from .common import BackupError, sha256
+from .signing import read_regular
 
 
 def registry_ids(config):
@@ -9,9 +11,10 @@ def registry_ids(config):
         return set(), set()
     try:
         path = config.registry
-        if path.is_symlink() or path.stat().st_size > 16 * 1024 ** 2 or sha256(path) != config.registry_sha256:
+        raw = read_regular(path, 16 * 1024 ** 2)
+        if hashlib.sha256(raw).hexdigest() != config.registry_sha256:
             raise ValueError
-        data = json.loads(path.read_text())
+        data = json.loads(raw)
         expected = data["repository_ids"]
         retired = data.get("retired", [])
         if data["schema_version"] != 1 or not isinstance(expected, list) or not isinstance(retired, list):

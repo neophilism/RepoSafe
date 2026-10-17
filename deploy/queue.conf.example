@@ -1,0 +1,8 @@
+# Give this identity SFTP read-only access to exactly the role's published tree.
+# Pin known_hosts independently; do not treat ssh-keyscan output as authority.
+[queue]
+type = sftp
+host = replace-with-approved-source-host
+user = reposafe-readonly
+key_file = /etc/reposafe/keys/queue-client
+disable_hashcheck = true

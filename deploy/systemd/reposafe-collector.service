@@ -28,3 +28,5 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 CapabilityBoundingSet=
 TimeoutStartSec=5h
 KillMode=control-group
+MemoryMax=2G
+TasksMax=128

@@ -1,9 +1,9 @@
 # RepoSafe technical architecture
 
 Status: approved implementation direction from the owner's request; deployment
-and production acceptance are separate gates. Basic snapshots and Drive/Dropbox
-delivery exist. The later sections specify the hardened target, not a claim that
-all components have been implemented. See DEVELOPMENT_PLAN.md and STATUS.md.
+and production acceptance are separate gates. Code implements the components listed in STATUS.md; provider/host/physical
+acceptance is distinct from implementation. See DEVELOPMENT_PLAN.md, RELEASE.md
+and ACTIVATION.md. Nothing here asserts that private production backups are active.
 
 ## 1. Objective and guarantees
 
@@ -72,8 +72,8 @@ not a certification. Hardware/media and paid services require a budget decision.
 ## 3. Identity, key custody and least privilege
 
 * Source token reads selected owners' repositories; no contents-write, repo-delete,
-  Actions-write, organization-admin or secret-read privilege. Prefer a dedicated
-  GitHub App with short-lived installation tokens once implemented. Verify each
+  Actions-write, organization-admin or secret-read privilege. Prefer the implemented dedicated
+  GitHub App with short-lived installation tokens. Verify each
   owner's all-repositories selection and organization/SSO grants separately.
 * Collector contains only age **public recipients**. Generate native age X25519
   identities on a trusted recovery machine, with two separately secured offline
@@ -85,7 +85,7 @@ not a certification. Hardware/media and paid services require a budget decision.
   holds, bypass governance, disable versioning or alter bucket/account policy.
   Readers, retention operators and break-glass admins use different identities.
 * Pin restore verification public keys/receipt digests outside the mutable backup
-  location. Later signed receipts must be independently witnessed: a signing key
+  location. Signed receipts must be independently witnessed: a signing key
   on a compromised collector can authenticate malicious future captures.
 * Account recovery uses independent email/SSO boundaries and hardware security keys
   with secured spares. A single Google login should not recover every vault.
@@ -161,7 +161,8 @@ Power loss or a failed upload leaves an incomplete run; it never promotes a part
 copy as a full success. Retry the same ciphertext with immutable semantics.
 
 Full daily encrypted packages are deliberately simple and independently restorable,
-but grow linearly with full dataset size. Later chunking/deduplication must preserve
+but grow linearly with full dataset size. Implemented independent age chunks bound
+transfer objects without cross-run dependencies. Any future deduplication must preserve
 the full dependency graph under retention, repair and version-aware restore. Do
 not blindly run restic prune against WORM storage. A separately administered
 append-only rest-server can be an efficient hot tier, not a substitute for WORM or
@@ -208,8 +209,8 @@ Capacity model: initial full size S, daily change D, full daily archive retentio
 requires approximately S×N per destination before compression and version overhead.
 Read-back verification incurs additional reads/egress. WORM bills persist through
 the lock period even if credentials are revoked. Test realistic archives against
-Drive/Dropbox file-size, quota and throughput constraints; shard/chunk in a later
-PR before datasets exceed those limits. No unverified price assumptions are used.
+Drive/Dropbox file-size, quota and throughput constraints; use the implemented bounded chunks
+and validate provider limits before larger datasets are enrolled. No unverified price assumptions are used.
 
 The recovery kit contains reviewed RepoSafe source/wheel, Python/tool install
 instructions, public verification roots/receipts, format schemas, age identities

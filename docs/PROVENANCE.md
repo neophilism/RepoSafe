@@ -115,3 +115,7 @@ not a custom primitive. The v1 envelope signs the ASCII bytes
 `RepoSafe signature v1\0PURPOSE\0LOWERCASE_SHA256_OF_EXACT_DOCUMENT_BYTES` and carries
 the public-key SHA-256 fingerprint, purpose and 64-byte signature. JSON reformatting
 changes the digest; an embedded public key is never accepted as its own authority.
+
+Read-only mounted inboxes can instead be populated automatically by the implemented
+queue-pull SFTP feeders. See ACTIVATION.md for host-key pins, remote-shell restrictions
+and the matching writer/witness/monitor feed timers.

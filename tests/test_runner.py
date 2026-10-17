@@ -1,15 +1,23 @@
 import tempfile
+import os
 import unittest
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 from reposafe.common import BackupError
 from reposafe.config import Config, Destination
 from reposafe.delivery import Delivery
-from reposafe.runner import execute, read_state, run_lock
+from reposafe.runner import execute, read_state, run_lock, collect_only
 from reposafe.snapshot import Capture
 
 
 class RunnerTests(unittest.TestCase):
+    def test_isolated_collection_refuses_destination_credentials_before_source_access(self):
+        github = Mock()
+        with patch.dict(os.environ, {"RCLONE_CONFIG": "/fixture", "REPOSAFE_COLLECTOR_SIGNING_KEY_FILE": "/fixture"}), self.assertRaisesRegex(BackupError, "destination"):
+            collect_only(self.config, github, self.root / "out", self.state)
+        github.inventory.assert_not_called()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)

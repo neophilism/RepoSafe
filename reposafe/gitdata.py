@@ -1,6 +1,7 @@
 """Git recovery evidence and LFS checks, without checking out or executing content."""
 
 import re
+import os
 from pathlib import Path
 
 from .common import BackupError, command, sha256, write_json
@@ -49,9 +50,15 @@ def evidence(mirror, env, *, lfs):
 
 
 def verify_restored(mirror, expected):
-    prefix = ["git", "-c", "core.hooksPath=/dev/null", "-C", mirror]
-    command([*prefix, "fsck", "--full", "--strict"])
-    raw = command([*prefix, "for-each-ref", "--format=%(refname)%00%(objectname)"])
+    mirror = Path(mirror)
+    if any((mirror / name).exists() for name in ("commondir", "gitdir", "objects/info/alternates", "objects/info/http-alternates")) or list((mirror / "objects/pack").glob("*.promisor")):
+        raise BackupError("restored Git mirror depends on external or missing object storage")
+    env = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL")}
+    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_ALLOW_PROTOCOL="",
+               GIT_TERMINAL_PROMPT="0", GIT_NO_REPLACE_OBJECTS="1")
+    prefix = ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", mirror]
+    command([*prefix, "fsck", "--full", "--strict"], env=env)
+    raw = command([*prefix, "for-each-ref", "--format=%(refname)%00%(objectname)"], env=env)
     actual = dict(line.split("\x00") for line in raw.decode().splitlines())
     if actual != expected["refs"] or (Path(mirror) / "HEAD").read_text().strip() != expected["head"]:
         raise BackupError("restored Git refs or HEAD do not match captured evidence")

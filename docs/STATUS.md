@@ -1,22 +1,30 @@
-# Current implementation and acceptance status
+# Implementation and acceptance status
 
 | Area | Code status | Verification |
 | --- | --- | --- |
-| Encrypted GitHub snapshots, Drive/Dropbox daily delivery | PRs #1–#2 merged | Real age/rclone local fixtures; cloud OAuth pending |
-| Architecture, plan, independent runner and offline restore | PRs #3–#4 merged | 39 tests and live public GitHub recovery smoke passed CI |
-| App authentication, inventory, LFS and metadata sources | PR #5 merged | 50 tests and public recovery smoke passed CI; private grants pending |
-| S3/B2 versioned compliance vaults, chunks and resume | PR #6 merged | Native failure/retention/version-recovery fixtures; real cloud enforcement pending |
-| Separate agents and signed independent witnessing | PR #7 merged | 67 tests, including signature/rollback/native-readback and real rclone agent fixtures; host isolation pending |
-| SQLite/PostgreSQL and remote object/document sources | PR #8 merged | 79 tests including real isolated PostgreSQL export/restore passed CI; source enrollment pending |
-| Independent signed-evidence monitor and alert integration | PR #9 merged | 86-test suite; stale/gap/rollback/required-copy/offline/webhook fixtures; real alert endpoint pending |
-| Enrolled offline media, signed recovery kits and retention proposals | PR #10 | 95-test suite; signed media/kit/copy, capacity/corruption and lock/hold/anchor fixtures; physical media pending |
-| Recovery qualification and production readiness | Continuing next | No production activation claim |
+| Daily encrypted GitHub → Drive/Dropbox | PRs #1–#2 merged | Real local age/rclone checks; actual OAuth/activation pending |
+| Architecture/full plan and independent runner foundation | PRs #3–#4 merged | Git/file recovery, durable coverage state and safe extraction |
+| App inventory, exact refs/LFS, metadata/assets | PR #5 merged | Source fixtures and live public recovery smoke; private App grants pending |
+| Native S3/B2 compliance versions, chunks and resume | PR #6 merged | Native failure/retention/exact-version fixtures and SDK contract; funded cloud enforcement pending |
+| Separate signed collector/writers and read-only witness | PR #7 merged | Signature/rollback/native read-back and real rclone agent fixtures; separate-host deployment pending |
+| SQLite/PostgreSQL and remote objects/documents | PR #8 merged | 79-test CI included real isolated PostgreSQL export/restore; actual datasets not enrolled |
+| Independent signed-evidence monitor/alerts | PR #9 merged | Freshness/gap/rollback/copy-policy/offline/webhook fixtures; real endpoint/recipient pending |
+| Enrolled offline media/kit and read-only retention proposals | PR #10 merged | 95-test CI; signed media/kit/copy, corruption/capacity/hold/anchor fixtures; physical media pending |
+| Recovery qualification, pinned releases, queue feeds and activation tooling | PR #11 | 106 local tests, 32 MiB measured local drill, wheel build and locked dependency audit; final CI required before merge |
 
-See implementation-log.md for completed behavior and GITHUB_EXPORTS.md / VAULTS.md
-for required scopes, policies, format migration and provider-specific limitations.
+Implementation covers H0–H15 and H16 deployment/acceptance tooling. Production H16
+acceptance is pending, not asserted. Logical dumps do not imply PITR/WAL-chain
+management; source version histories and source secrets unavailable through APIs
+need explicit independent enrollment/escrow. No destructive retention executor ships.
 
-No private-account cloud backup has been performed. No permanent recovery identity,
-independent host, paid vault, external monitor or offline media has been provisioned.
-Activation requires runtime credentials, owner-held offline recovery keys' public
-recipients, enrolled data/accounts and approved storage/retention. Code tests do not
-establish live private visibility, cloud immutability or production recovery times.
+The local suite skips its one real PostgreSQL integration when no server is
+available. CI explicitly requires that test and runs it in a new local cluster.
+Final CI also exercises supported Python versions, installed wheel, synthetic local
+recovery and a live public GitHub recovery smoke. See QUALIFICATION.md and evidence/.
+
+No private-account cloud backup, permanent recovery identity, independent host, paid
+vault, external alert destination or offline device was provisioned in development.
+No real provider WORM/permission enforcement, future daily run, physical disconnection
+or full-account production recovery time is claimed. ACTIVATION.md gives concrete
+inputs, role/feed/timer setup and a signed owner acceptance record with every check
+initially pending. Do not put real acceptance evidence or credentials in this repo.

@@ -31,6 +31,7 @@ class FileSource:
     path: Path
     exclude: tuple[str, ...] = ()
     maximum_bytes: int = 20 * 1024 ** 3
+    maximum_entries: int = 100000
 
 
 @dataclass(frozen=True)
@@ -131,11 +132,12 @@ def load(path):
             name, source = item["name"], Path(item["path"])
             excludes = tuple(item.get("exclude", []))
             maximum = item.get("maximum_bytes", 20 * 1024 ** 3)
+            entries = item.get("maximum_entries", 100000)
             if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", name) or not source.is_absolute():
                 raise ValueError
-            if type(maximum) is not int or maximum < 1 or any(not isinstance(x, str) or "\x00" in x for x in excludes):
+            if type(maximum) is not int or maximum < 1 or type(entries) is not int or not 1 <= entries <= 500000 or any(not isinstance(x, str) or "\x00" in x for x in excludes):
                 raise ValueError
-            sources.append(FileSource(name, source, excludes, maximum))
+            sources.append(FileSource(name, source, excludes, maximum, entries))
         if len({s.name for s in sources}) != len(sources):
             raise ValueError
         datasets = []

@@ -14,9 +14,11 @@ def directories(root):
     root = Path(root)
     if root.is_symlink() or not root.is_dir():
         raise BackupError("queue root must be an enrolled regular directory")
-    children = list(root.iterdir())
-    if len(children) > 10000:
-        raise BackupError("queue exceeds entry limit; archive completed inputs separately")
+    children = []
+    for child in root.iterdir():
+        if len(children) >= 10000:
+            raise BackupError("queue exceeds entry limit; archive completed inputs separately")
+        children.append(child)
     return sorted(p for p in children if RUN_ID.fullmatch(p.name) and p.is_dir() and not p.is_symlink())
 
 

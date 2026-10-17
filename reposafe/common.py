@@ -6,6 +6,9 @@ import signal
 import subprocess
 import tempfile
 import time
+import shutil
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 
@@ -13,11 +16,41 @@ class BackupError(Exception):
     """Safe to display: never include provider responses or command arguments."""
 
 
+_command_guard = ContextVar("reposafe_command_guard", default=None)
+
+
+@contextmanager
+def command_guard(check):
+    token = _command_guard.set(check)
+    try:
+        yield
+    finally:
+        _command_guard.reset(token)
+
+
+def storage_check(root, maximum_bytes, minimum_free_bytes):
+    if shutil.disk_usage(root).free < minimum_free_bytes:
+        raise BackupError("work volume fell below its free-space reserve")
+    total = 0
+    for count, path in enumerate(Path(root).rglob("*"), start=1):
+        if count > 1000000:
+            raise BackupError("work volume exceeded its staging entry budget")
+        if path.is_file():
+            total += path.stat().st_size
+            if total > maximum_bytes:
+                raise BackupError("work volume exceeded its staging byte budget")
+
+
 def command(args, *, env=None, cwd=None, timeout=3600, output_file=None,
             maximum_output_bytes=32 * 1024 ** 2, guard=None):
     """Bound output/time and terminate the entire tool process group on failure."""
     process, target = None, None
+    parent_guard = _command_guard.get()
     try:
+        if guard:
+            guard()
+        if parent_guard:
+            parent_guard()
         if output_file is not None:
             target = Path(output_file).open("xb")
             os.chmod(output_file, 0o600)
@@ -36,6 +69,8 @@ def command(args, *, env=None, cwd=None, timeout=3600, output_file=None,
                     raise BackupError("external tool exceeded its deadline")
                 if guard:
                     guard()
+                if parent_guard:
+                    parent_guard()
                 for key, _ in selector.select(timeout=min(0.25, max(0, deadline - time.monotonic()))):
                     chunk = os.read(key.fileobj.fileno(), 1024 * 1024)
                     if not chunk:

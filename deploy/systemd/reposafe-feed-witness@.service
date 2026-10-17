@@ -1,0 +1,32 @@
+[Unit]
+Description=RepoSafe read-only SFTP catalogs feed
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=reposafe-witness
+Group=reposafe-witness
+WorkingDirectory=/opt/reposafe/current
+EnvironmentFile=/etc/reposafe/feed-%i.env
+ExecStart=/opt/reposafe/venv/bin/reposafe queue-pull --remote ${REPOSAFE_QUEUE_REMOTE} --inbox /var/lib/reposafe-witness/inbox/%i --rclone-config ${REPOSAFE_QUEUE_CONFIG} --known-hosts ${REPOSAFE_QUEUE_KNOWN_HOSTS} --kind catalogs --maximum-bytes ${REPOSAFE_QUEUE_MAXIMUM_BYTES}
+UMask=0077
+StateDirectory=reposafe-witness
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/reposafe-witness
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TimeoutStartSec=65min
+KillMode=control-group
+MemoryMax=1G
+TasksMax=64
