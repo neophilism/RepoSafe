@@ -1,0 +1,95 @@
+import os
+import secrets
+import tarfile
+import tempfile
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+
+from .common import BackupError, command, sha256, write_json
+
+
+@dataclass(frozen=True)
+class Capture:
+    directory: Path
+    run_id: str
+    complete: bool
+    repository_count: int
+    failed_count: int
+
+
+def git_environment(token, askpass):
+    allowed = ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR")
+    env = {k: v for k, v in os.environ.items() if k in allowed}
+    env.update({
+        "GITHUB_BACKUP_TOKEN": token, "GIT_ASKPASS": str(askpass),
+        "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull, "GIT_LFS_SKIP_SMUDGE": "1",
+        "GIT_ALLOW_PROTOCOL": "https", "GIT_NO_REPLACE_OBJECTS": "1",
+    })
+    return env
+
+
+def mirror(repo, destination, env, include_lfs):
+    url = f"https://github.com/{repo['full_name']}.git"
+    safe = ["git", "-c", "core.hooksPath=/dev/null", "-c", "credential.helper=", "-c", "http.followRedirects=false"]
+    command([*safe, "clone", "--mirror", "--", url, destination], env=env)
+    command([*safe, "-C", destination, "fsck", "--full", "--strict"], env=env)
+    if include_lfs:
+        endpoint = url + "/info/lfs"
+        command([*safe, "-C", destination, "-c", "lfs.url=" + endpoint,
+                 "-c", "remote.origin.lfsurl=" + endpoint, "lfs", "fetch", "--all", "origin"], env=env)
+    write_json(destination.parent / "repository.json", repo)
+
+
+def capture(config, github, output, *, mirror_fn=mirror):
+    inventory = github.inventory(config)
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(8)
+    output = Path(output).resolve()
+    output.mkdir(parents=True, exist_ok=True, mode=0o700)
+    destination = output / run_id
+    destination.mkdir(mode=0o700)
+    with tempfile.TemporaryDirectory(prefix="reposafe-", dir=config.work_dir) as raw:
+        root = Path(raw)
+        os.chmod(root, 0o700)
+        payload = root / "payload"
+        payload.mkdir(mode=0o700)
+        askpass = root / "askpass"
+        askpass.write_text(
+            "#!/usr/bin/env python3\nimport os, sys\n"
+            "print('x-access-token' if 'Username' in sys.argv[-1] else os.environ['GITHUB_BACKUP_TOKEN'])\n"
+        )
+        askpass.chmod(0o700)
+        env = git_environment(github.token, askpass)
+        outcomes = []
+        for repo in inventory:
+            repo_dir = payload / "repositories" / str(repo["id"])
+            repo_dir.mkdir(parents=True, mode=0o700)
+            try:
+                mirror_fn(repo, repo_dir / "mirror.git", env, config.include_lfs)
+                outcomes.append({"id": repo["id"], "full_name": repo["full_name"], "status": "complete"})
+            except BackupError:
+                outcomes.append({"id": repo["id"], "full_name": repo["full_name"], "status": "failed"})
+        failed = sum(r["status"] != "complete" for r in outcomes)
+        write_json(payload / "manifest.json", {
+            "schema_version": 1, "run_id": run_id, "complete": failed == 0,
+            "include_lfs": config.include_lfs, "repositories": outcomes,
+            "coverage": "Git mirrors, LFS when enabled, repository metadata; see docs/COVERAGE.md",
+        })
+        archive = root / "snapshot.tar.gz"
+        with tarfile.open(archive, "w:gz") as bundle:
+            bundle.add(payload, arcname="snapshot", recursive=True)
+        ciphertext = destination / "snapshot.tar.gz.age"
+        recipients = [a for r in config.recipients for a in ("-r", r)]
+        try:
+            command(["age", "--encrypt", *recipients, "-o", ciphertext, archive])
+            ciphertext.chmod(0o600)
+            write_json(destination / "receipt.json", {
+                "schema_version": 1, "run_id": run_id, "complete": failed == 0,
+                "repositories": len(inventory), "failed": failed,
+                "files": [{"name": ciphertext.name, "sha256": sha256(ciphertext), "bytes": ciphertext.stat().st_size}],
+            })
+        except BackupError:
+            ciphertext.unlink(missing_ok=True)
+            raise
+    return Capture(destination, run_id, failed == 0, len(inventory), failed)

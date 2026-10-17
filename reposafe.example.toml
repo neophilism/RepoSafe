@@ -1,0 +1,13 @@
+[github]
+owners = ["neophilism"]
+minimum_repositories = 1
+required_repositories = ["neophilism/RepoSafe"]
+include_lfs = true
+
+[encryption]
+# Replace with the public recipient from `age-keygen`. NEVER put the private key here.
+recipients = ["REPLACE_WITH_AGE_PUBLIC_RECIPIENT"]
+
+# Optional: dedicated encrypted local scratch volume, outside folders being backed up.
+#[runner]
+#work_dir = "/var/lib/reposafe/work"
