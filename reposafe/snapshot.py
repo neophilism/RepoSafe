@@ -14,6 +14,7 @@ from .gitdata import evidence
 from .inventory import registry_ids
 from .metadata import export_repository
 from .chunks import encrypt_archive
+from .datasets import export_dataset
 
 
 @dataclass(frozen=True)
@@ -104,6 +105,11 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
                 sources.append({"name": source.name, "status": "complete", **evidence})
             except BackupError:
                 sources.append({"name": source.name, "status": "failed"})
+        for dataset in config.datasets:
+            try:
+                sources.append(export_dataset(dataset, payload / "datasets" / dataset.name))
+            except BackupError:
+                sources.append({"name": dataset.name, "kind": dataset.kind, "status": "failed"})
         failed = sum(r["status"] != "complete" for r in outcomes) + sum(s["status"] != "complete" for s in sources)
         complete = failed == 0 and not missing
         write_json(payload / "manifest.json", {

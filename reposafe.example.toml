@@ -28,3 +28,14 @@ required = true
 #path = "/srv/backup-input/documents"
 #exclude = ["*.tmp", "cache/**"]
 #maximum_bytes = 21474836480
+
+# Native consistent sources: see docs/DATASETS.md for runtime credential files.
+#[[datasets]]
+#name = "appdb"
+#kind = "sqlite"
+#path = "/srv/app/database.sqlite"
+#maximum_bytes = 21474836480
+#timeout_seconds = 3600
+#owner = "operator"
+#rpo_hours = 24
+#rto_hours = 4

@@ -1,5 +1,6 @@
 import io
 import shutil
+import sqlite3
 import tarfile
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from reposafe.common import BackupError, command, sha256
-from reposafe.config import Config, FileSource
+from reposafe.config import Config, FileSource, Dataset
 from reposafe.restore import extract_safely, restore, verify_contents
 from reposafe.snapshot import capture, mirror
 
@@ -85,6 +86,22 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaises(BackupError):
             restore(result.directory, self.key, output, trusted_sha256="0" * 64)
         self.assertFalse(output.exists())
+
+    def test_database_dataset_roundtrips_through_encrypted_snapshot(self):
+        from dataclasses import replace
+        source = self.root / "live.sqlite"
+        with sqlite3.connect(source) as db:
+            db.execute("CREATE TABLE records(value TEXT)")
+            db.execute("INSERT INTO records VALUES ('recover database contents')")
+        self.config = replace(self.config, datasets=(Dataset("db", "sqlite", source),))
+        result = self.snapshot()
+        output = self.root / "database-restore"
+        manifest = restore(result.directory, self.key, output)
+        self.assertTrue(manifest["complete"])
+        with sqlite3.connect(output / "snapshot/datasets/db/database.sqlite") as db:
+            self.assertEqual("recover database contents", db.execute("SELECT value FROM records").fetchone()[0])
+        self.config = replace(self.config, datasets=(Dataset("db", "sqlite", self.root / "missing-database"),))
+        self.assertFalse(self.snapshot().complete)
 
     def test_restore_never_overwrites_existing_directory(self):
         result = self.snapshot()
