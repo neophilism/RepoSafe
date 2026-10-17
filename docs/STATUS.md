@@ -18,7 +18,15 @@ instructions. Real rclone integration tests use two local directories, check
 same-size corruption, retries and preservation of previous data. These tests do
 not establish actual Drive/Dropbox OAuth or provider behavior.
 
-Next: hardened architecture, full PR plan and independent-runner foundation.
+PR 2 merged after 18 tests and GitHub Actions CI passed.
+
+## Hardened design H0
+
+Written in order: TECHNICAL_ARCHITECTURE.md, then DEVELOPMENT_PLAN.md and ADR 0001.
+The plan covers H1 through production acceptance H16, with dependencies, file/module
+scope, migration, required verification and external deployment inputs. Next: H1
+independent-runner foundation. Immutable vaults, isolated delivery hosts, signed
+witnessing, independent monitoring and offline media remain planned features.
 
 No real account backup or cloud transfer has been performed. Deployment needs a
 separate read-only GitHub credential, public age recipient and destination OAuth
