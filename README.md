@@ -2,6 +2,10 @@
 
 Encrypted, recoverable backups of public and private GitHub repositories.
 
+[Technical architecture](docs/TECHNICAL_ARCHITECTURE.md) ·
+[Full PR development plan](docs/DEVELOPMENT_PLAN.md) ·
+[Current implementation and deployment status](docs/STATUS.md)
+
 RepoSafe inventories configured owners using a read-only GitHub credential,
 mirrors Git history and LFS, checks Git object integrity, and encrypts the snapshot
 with an **offline-held age recovery key** before it leaves the runner. Each run
