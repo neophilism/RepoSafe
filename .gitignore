@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+reposafe.toml
+*.age
+*.key
+*.pem
+*.env
+rclone.conf
+backups/
+state/
+work/
