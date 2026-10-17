@@ -25,8 +25,8 @@ fix failing checks, merge only after GitHub confirms safe merge, and update STAT
 | Other data | H10 | H1 | Database-consistent PostgreSQL/SQLite exports and object/document adapters | Implemented in PR #8; enrolled-service acceptance pending |
 | Scale | H11 | H3, H6 | Chunked resumable transfer and capacity policies; measured hot-tier decision | Implemented in PR #6; cloud acceptance pending |
 | Operations | H12 | H6, H7, H9 | Independent freshness/retention monitoring and failure alerting | Implemented in PR #9; independent endpoint/host acceptance pending |
-| Offline | H13 | H9, H11 | Rotated offline export, complete recovery kit and media verification | Planned |
-| Retention | H14 | H9, H11, H12 | Separately authorized retention maintenance and budget reporting | Planned |
+| Offline | H13 | H9, H11 | Rotated offline export, complete recovery kit and media verification | Implemented in PR #10; physical rotation/clean-machine acceptance pending |
+| Retention | H14 | H9, H11, H12 | Separately authorized retention maintenance and budget reporting | Read-only anchored planner in PR #10; no deletion executor or production expiration authorized |
 | Assurance | H15 | H5, H7–H14 | Restore drills, chaos/security verification and recovery benchmarks | Planned |
 | Activation | H16 | H15 | Real-account daily production rollout and signed acceptance evidence | Planned |
 

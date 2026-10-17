@@ -158,6 +158,25 @@ class ObjectVault:
         return {"key": key, "version_id": version, "sha256": expected_hash, "bytes": expected_size,
                 "retention_mode": "COMPLIANCE", "retain_until": until}
 
+    def audit_version(self, record):
+        """Read-only maintenance evidence, including expired locks and legal holds."""
+        try:
+            version, key = record["version_id"], record["key"]
+            if not version or version == "null":
+                raise ValueError
+            kwargs = {"Bucket": self.destination.bucket, "Key": key, "VersionId": version, **self.owner}
+            head = self.client.head_object(**kwargs)
+            if head.get("VersionId") != version or head["ContentLength"] != record["bytes"]:
+                raise ValueError
+            retention = self.client.get_object_retention(**kwargs)["Retention"]
+            hold = self.client.get_object_legal_hold(**kwargs)["LegalHold"]["Status"]
+            until = retention["RetainUntilDate"]
+            if retention["Mode"] != "COMPLIANCE" or until.tzinfo is None or hold not in ("ON", "OFF"):
+                raise ValueError
+            return {"mode": "COMPLIANCE", "retain_until": until.astimezone(timezone.utc).isoformat(), "legal_hold": hold}
+        except Exception:
+            raise BackupError("maintenance version/retention/legal-hold read could not be verified") from None
+
     def store(self, path, run_id, *, expected_hash, expected_size):
         if self.read_only:
             raise BackupError("recovery identity cannot upload")

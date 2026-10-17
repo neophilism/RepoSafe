@@ -99,7 +99,8 @@ class MonitorTests(unittest.TestCase):
         def report(verified):
             path.unlink(missing_ok=True)
             path.with_name("copy.sig.json").unlink(missing_ok=True)
-            write_json(path, {"schema_version": 1, "verified": True, "verified_at": verified.isoformat()})
+            write_json(path, {"schema_version": 1, "kind": "offline-copy", "verified": True,
+                             "verified_at": verified.isoformat(), "captured_at": (verified - timedelta(hours=1)).isoformat()})
             sign_file(path, self.key, path.with_name("copy.sig.json"), "offline-copy")
         report(self.now)
         self.assertTrue(self.check(offline_report=path, offline_key=self.public)["healthy"])
