@@ -1,0 +1,514 @@
+{
+  "repository": "neophilism/RepoSafe",
+  "title": "RepoSafe canonical PR development plan",
+  "schemaVersion": 1,
+  "roadmapVersion": 1,
+  "observedAt": "2026-10-19T01:30:41.704Z",
+  "planVerified": true,
+  "plannedPrCount": 19,
+  "sourceFiles": [
+    "docs/DEVELOPMENT_PLAN.md",
+    "docs/STATUS.md",
+    "docs/implementation-log.md"
+  ],
+  "units": [
+    {
+      "id": "B1",
+      "title": "encrypted GitHub snapshots",
+      "prs": [
+        1
+      ],
+      "dependsOn": [],
+      "acceptanceCriteria": "CI passed; PR #1 merged. All-account visibility remains deployment evidence.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 1,
+        "productionAcceptanceStillSeparate": false,
+        "description": "## B1 — encrypted GitHub snapshots (completed)\n\nFiles: reposafe/config.py, github.py, snapshot.py, common.py, cli.py; pyproject.toml;\nCI; coverage documentation. Paginate authenticated inventory, filter explicit owners,\ninclude public/private/forks/archived, enforce count/required guards, mirror all\nadvertised refs without checkout, fetch LFS, fsck, encrypt with native age recipients,\nunique paths and aggregate integrity receipts. No cloud payload leaves unencrypted.\n\nValidation: real age encrypt/decrypt; API pagination and 401/429 handling; empty\ncoverage failure; partial status; unique paths; secret-free subprocess diagnostics.\nAcceptance: CI passed; PR #1 merged. All-account visibility remains deployment evidence.\n\n"
+      }
+    },
+    {
+      "id": "B2",
+      "title": "daily Drive/Dropbox delivery",
+      "prs": [
+        2
+      ],
+      "dependsOn": [
+        "B1"
+      ],
+      "acceptanceCriteria": "18 tests and GitHub CI passed; PR #2 merged. Real Drive/Dropbox OAuth is not tested.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 2,
+        "productionAcceptanceStillSeparate": false,
+        "description": "## B2 — daily Drive/Dropbox delivery (completed)\n\nFiles: delivery.py, scripts/prepare_runtime.py, backup workflow, SETUP.md/RECOVERY.md.\nCopy explicit ciphertext filenames with no delete/overwrite workflow, read bytes\nback, publish receipt last, attempt both providers independently, retry existing\nciphertext. Scheduled and manual execution use private runtime config outside the\ncheckout. Document private-repo token scope, OAuth, expiry, quotas and GitHub schedule\nlimitations. No PR event receives backup tokens; no payload Actions artifacts.\n\nValidation: real rclone local transport, same-size corruption, retry idempotence,\nprovider outage, receipt ordering, exclusion of unexpected plaintext. Acceptance:\n18 tests and GitHub CI passed; PR #2 m"
+      }
+    },
+    {
+      "id": "H0",
+      "title": "architectural baseline",
+      "prs": [
+        3
+      ],
+      "dependsOn": [
+        "B2"
+      ],
+      "acceptanceCriteria": "design, operational boundaries and follow-on work are independently\nunderstandable without ChatGPT memory; basic implementation remains test-green.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 3,
+        "productionAcceptanceStillSeparate": false,
+        "description": "## H0 — architectural baseline (PR #3 completed)\n\nWrite architecture first, then this full dependency/validation plan. Record decisions\nin ADRs and the threat model, including mutable-vs-immutable storage, key custody,\ncredential compromise, data scope and no-spending deployment constraints. Link from\nREADME. Acceptance: design, operational boundaries and follow-on work are independently\nunderstandable without ChatGPT memory; basic implementation remains test-green.\n\n"
+      }
+    },
+    {
+      "id": "H1",
+      "title": "hardened foundation",
+      "prs": [
+        4
+      ],
+      "dependsOn": [
+        "H0"
+      ],
+      "acceptanceCriteria": "code and tests merged/committed, with an honest deployment checklist.\nThis is a foundation, not a claim that Object Lock or alerting is operating.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 4,
+        "productionAcceptanceStillSeparate": false,
+        "description": "## H1 — hardened foundation (PR #4 completed)\n\n* Introduce explicit file-source specifications and a collector interface without\n  executing shell hooks. Copy regular files only, reject links/devices, check for\n  mutation, honor declared exclusions and cap bytes. Include source results privately.\n* Add content-hash manifests inside encryption with a versioned v2 receipt. Keep\n  the v1 verifier for bootstrap ciphertext; safe restore requires v2 content manifests.\n* Build offline restore into a new private directory, bounded extraction, path/link/\n  duplicate-member defense, content hash verification, no overwrite/no network/no hooks.\n  Allow an externally trusted ciphertext digest to anchor archive provenance.\n* Add OS locking and atomic dur"
+      }
+    },
+    {
+      "id": "H2",
+      "title": "source identity and coverage registry",
+      "prs": [],
+      "contributingPrs": [
+        5
+      ],
+      "dependsOn": [
+        "H1"
+      ],
+      "acceptanceCriteria": "compare authenticated inventory to owner's admin-visible inventory in a\nprivate run; no source write capability; failure is observable outside the collector.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 5,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H2 — source identity and coverage registry\n\nFiles: auth.py, inventory.py, schemas, credential runbook. Support dedicated GitHub\nApp installation discovery and short-lived token minting; isolate private keys on\nsource collector only. Paginate every owner's inventory with stable IDs and full\ngrants. Record selected-repo restrictions and organization/SSO authorization.\nMaintain an independently reviewed expected registry and explicit signed retirement\nevents; transfers/renames update metadata while preserving IDs. New private repos\nare automatically captured when grants permit. Do not infer invisibility as deletion.\n\nTests: token expiry/refresh, installation pagination, revoked grant, rename/transfer,\nrate limit exhaustion, new private repo"
+      }
+    },
+    {
+      "id": "H3",
+      "title": "Git and LFS recovery fidelity",
+      "prs": [],
+      "contributingPrs": [
+        5
+      ],
+      "dependsOn": [
+        "H2"
+      ],
+      "acceptanceCriteria": "clean recovery compares all captured refs and LFS hashes, independently\nof GitHub. Old formats remain readable; new metadata is additive/versioned.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 5,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H3 — Git and LFS recovery fidelity\n\nRecord exact ref/object maps and captured HEAD with timestamps. Validate each LFS\nobject against its OID/size; track LFS missing objects and repository network failures.\nAdd wiki mirrors with explicit absent/empty/permission statuses. Inventory submodule\ntargets and signal unenrolled dependencies; do not execute them. Define treatment of\nGitHub pull refs, hidden refs, large repos, Git replace refs and source mutation during\ncapture. Preserve full snapshots across force pushes and branch/repo deletion.\n\nTests: multi-branch/tag refs, empty repo, force push, packed refs, gitlinks, deleted\nbranch, missing LFS, unexpected endpoint, wiki permissions and source-change retry.\nAcceptance: clean recovery compare"
+      }
+    },
+    {
+      "id": "H4",
+      "title": "collaborative repository metadata",
+      "prs": [],
+      "contributingPrs": [
+        5
+      ],
+      "dependsOn": [
+        "H3"
+      ],
+      "acceptanceCriteria": "compare counts to a\nsynthetic seeded repository and navigate exports with no source access. Re-import",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 5,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H4 — collaborative repository metadata\n\nExport issues, PRs, comments, review threads/reviews, labels and milestones with\nstable API identifiers and author/timestamp metadata. Preserve raw JSON plus a\nnormalized offline index; do not conflate issue and PR collections. Stream pages to\nbounded storage. Track mandatory vs unavailable endpoints and API version/permission.\nDefine reproducible capture windows and record concurrent-change limitations.\n\nTests: >100-page fixtures, deleted users, edited/deleted comments, 403/404, secondary\nrate limits, malformed data and resumable failure. Acceptance: compare counts to a\nsynthetic seeded repository and navigate exports with no source access. Re-import\nlimitations (IDs/timestamps/permissions) are do"
+      }
+    },
+    {
+      "id": "H5",
+      "title": "remaining GitHub data and assets",
+      "prs": [],
+      "contributingPrs": [
+        5
+      ],
+      "dependsOn": [
+        "H4"
+      ],
+      "acceptanceCriteria": "offline asset\nhash matches and complete endpoint coverage ledger; a missing mandatory asset fails",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 5,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H5 — remaining GitHub data and assets\n\nExport release metadata and binary assets, discussions via GraphQL, settings/rules,\nreadable access metadata and opt-in Actions artifacts/logs before expiry. Use strict\nhost/redirect credential rules for downloads and streaming integrity checks; never\nforward GitHub authorization to arbitrary asset URLs. Record encrypted-secrets names\nonly when authorized; secret values are not retrievable. Add opt-in package/export\ncoverage if the owner enrolls it. OAuth scope expands only for requested source data.\n\nTests: draft/private releases, zero-byte and large assets, redirects, expired assets,\nGraphQL cursors, schema changes and inaccessible settings. Acceptance: offline asset\nhash matches and complete endp"
+      }
+    },
+    {
+      "id": "H6",
+      "title": "S3 immutable vault",
+      "prs": [],
+      "contributingPrs": [
+        6
+      ],
+      "dependsOn": [
+        "H1"
+      ],
+      "acceptanceCriteria": "retained\nversion recovered after attempted deletion; permission and retention evidence saved",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 6,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H6 — S3 immutable vault\n\nImplement native SDK adapter and configuration schema rather than treating rclone's\n`--immutable` as WORM proof. Inspect versioning/default Object Lock before writes;\nrequire COMPLIANCE and minimum retain-until for each object version. Upload with\nchecksums, record object/version IDs and checksums in private/witnessed catalog, and\nverify retention after each payload/receipt. Use conditional creates and version-\nspecific restores. Deny delete/version-delete, bypass/retention-policy updates and\nbucket administration to writer; keep billing/admin recovery separate from GitHub.\n\nAdd reviewed IaC templates with blocked public access, TLS-only policy, account\nseparation, audit logs and bounded test/production retention"
+      }
+    },
+    {
+      "id": "H7",
+      "title": "B2 immutable provider diversity",
+      "prs": [],
+      "contributingPrs": [
+        6
+      ],
+      "dependsOn": [
+        "H6"
+      ],
+      "acceptanceCriteria": "independently observed immutable backups survive loss of either provider;\neach required vault's own completion is visible. No production bucket created blindly.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 6,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H7 — B2 immutable provider diversity\n\nAdd a native B2/S3-compatible adapter with actual Object Lock inspection, bucket/key\ncapability restrictions, stable version IDs, minimum compliance retention, write/read\nverification and no-delete capabilities. Separate provider account, recovery and\ncredentials from S3. Verify provider-specific lifecycle, retention and listing semantics.\n\nTests: API error fixtures and live funded bucket with restricted key; deny retention\nshortening and deletion, recover a named protected version, isolate an S3 outage.\nAcceptance: independently observed immutable backups survive loss of either provider;\neach required vault's own completion is visible. No production bucket created blindly.\n\n"
+      }
+    },
+    {
+      "id": "H8",
+      "title": "compartmentalized runtime and supply chain",
+      "prs": [],
+      "contributingPrs": [
+        7
+      ],
+      "dependsOn": [
+        "H2",
+        "H6"
+      ],
+      "acceptanceCriteria": "credential inventory/host diagrams\nmatch deployed isolation; systemd hardening verified on the chosen OS.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 7,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H8 — compartmentalized runtime and supply chain\n\nSeparate source collector and per-vault delivery agents into trust zones with\nauthenticated append-only ciphertext queues. Define input size/format validation,\nreplay control, idempotency, retry/dead-letter behavior and egress allowlists. No\nagent has every cloud credential. Restore/retention identities are never installed.\nUse reviewed version/digest-pinned releases and signed updates distributed outside\nGitHub's automatic execution path. Generate SBOM/tool inventory and verify provenance.\n\nTests: compromised/malformed queue item, replay, missing bytes, worker termination,\nnetwork partition, source token unavailable to uploader, vault token unavailable to\ncollector, unreviewed software up"
+      }
+    },
+    {
+      "id": "H9",
+      "title": "signed, witnessed catalogs and rollback defense",
+      "prs": [],
+      "contributingPrs": [
+        7
+      ],
+      "dependsOn": [
+        "H6",
+        "H8"
+      ],
+      "acceptanceCriteria": "independently anchored clean recovery.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 7,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H9 — signed, witnessed catalogs and rollback defense\n\nAdd established signature tooling, canonical receipt schema, key IDs and rotation.\nCollector signatures attest collection only; independent verifier signs/witnesses\naccepted provider versions and full verification. Pin public roots in offline recovery\nkit and independent monitor. Hash-chain witness events with monotonic sequence/run\ntimestamps; defend against forged/replayed latest pointers and catalog replacement.\nKeep metadata private by encrypting sensitive catalog contents before publication.\n\nTests: altered receipt, replaced ciphertext/receipt pair, old valid run replay,\nclock skew, signer compromise/rotation, witness outage and catalog reconstruction from\nproviders. Migration: v"
+      }
+    },
+    {
+      "id": "H10",
+      "title": "other-data adapters and consistency",
+      "prs": [],
+      "contributingPrs": [
+        8
+      ],
+      "dependsOn": [
+        "H1"
+      ],
+      "acceptanceCriteria": "restore into isolated services and pass application consistency\nchecks. Never touch or overwrite production databases during a restore drill.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 8,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H10 — other-data adapters and consistency\n\nAdd PostgreSQL logical export/restore with separate source credentials, database role\nmetadata and selected extension/version checks; SQLite online backup; optional provider\nPITR/WAL enrollment with retention matching restore dependencies. Add object storage\nand requested document/config exporters via fixed adapter commands, not arbitrary shell\nhooks. Enroll each dataset with owner, scope, consistency, RPO/RTO and secret escrow.\n\nTests: active writes, transaction consistency, roles/extensions, SQLite WAL, truncated\ndump, database version mismatch, object pagination/version deletion and source auth\nfailure. Acceptance: restore into isolated services and pass application consistency\nchecks. Never "
+      }
+    },
+    {
+      "id": "H11",
+      "title": "scale, resumability and storage economics",
+      "prs": [],
+      "contributingPrs": [
+        6
+      ],
+      "dependsOn": [
+        "H3",
+        "H6"
+      ],
+      "acceptanceCriteria": "measured cloud limits/cost estimate, complete restore and no unresolved\nreference/prune hazards. Additional paid storage/egress needs explicit budget approval.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 6,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H11 — scale, resumability and storage economics\n\nMeasure dataset/storage/throughput first. Add independently encrypted bounded chunks,\nresumable per-object queues, compressed indexes and manifests, quotas/backpressure,\nbounded concurrency, upload timeout/backoff and storage budget reports. If using\ncontent dedup, retain all referenced chunks through each referencing snapshot's full\nlock interval. Consider a separate append-only restic hot tier after benchmarking;\ndo not embed public-key-only claims or assume direct WORM pruning will work.\n\nTests: multi-gigabyte fixture, interrupted chunk/multipart resume, corrupt chunk,\nshared-chunk retention dependency, quota errors and realistic restore bandwidth.\nMigration: immutable v2 full archives "
+      }
+    },
+    {
+      "id": "H12",
+      "title": "monitoring and operational response",
+      "prs": [],
+      "contributingPrs": [
+        9
+      ],
+      "dependsOn": [
+        "H6",
+        "H7",
+        "H9"
+      ],
+      "acceptanceCriteria": "an external alert arrives within agreed 30-hour stale window, including when GitHub\nis unavailable. Runbooks include credential rotation and compromise freeze procedures.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 9,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H12 — monitoring and operational response\n\nDeploy independent deadline monitoring, start/fail/verified-success events, per-vault\nfreshness, coverage and retention checks, token expiry warnings, quota/capacity, run\nduration and offline-media age. Protect health credentials but do not equate heartbeat\npossession with backup validity. Product alerts use operator-configured recipients\nand providers; do not send unsolicited development messages.\n\nTests: stop timer, revoke source/destination token, job hangs, silent provider failure,\nstale receipt, all-success heartbeat spoof, disk-full and provider outage. Acceptance:\nan external alert arrives within agreed 30-hour stale window, including when GitHub\nis unavailable. Runbooks include credentia"
+      }
+    },
+    {
+      "id": "H13",
+      "title": "offline rotation and recovery kit",
+      "prs": [],
+      "contributingPrs": [
+        10
+      ],
+      "dependsOn": [
+        "H9",
+        "H11"
+      ],
+      "acceptanceCriteria": "restore without network or original runner; media purchase/location and\nphysical rotation are owner actions, never falsely labeled autonomous software work.",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 10,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H13 — offline rotation and recovery kit\n\nExport independently recoverable generations with signed indexes, checksums and tool\nkit to enrolled encrypted removable devices. Require correct device identity/mount,\nfree space and read-back verification; never format disks automatically. Track last\nverified copy and physical location without exposing recovery keys. At least one\ndevice remains unplugged; no always-mounted NAS counts as air-gapped. Provide a\nweekly rotation runbook and a small separate offline identity escrow process.\n\nTests: wrong/missing/read-only media, corrupt sectors/fixture files, partial copy,\nstale catalog, lost cloud accounts, key retrieval and clean-room offline restore.\nAcceptance: restore without network or original "
+      }
+    },
+    {
+      "id": "H14",
+      "title": "isolated retention maintenance",
+      "prs": [],
+      "contributingPrs": [
+        10
+      ],
+      "dependsOn": [
+        "H9",
+        "H11",
+        "H12"
+      ],
+      "acceptanceCriteria": "reviewed\ndry-run against funded test data, no production delete without separately authorized",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 10,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H14 — isolated retention maintenance\n\nImplement report/dry-run first; require a separate operator identity and reviewed\npolicy to expire only eligible data. Respect all object versions, lock times,\nlegal holds, chunk dependencies and minimum surviving known-good generations. No\nroutine collector/uploader gains prune privileges. Source deletions/revocation do\nnot lower retention. Produce forecast costs and lifecycle drift checks.\n\nTests: clock skew, active locks, mixed versions, chunk references, provider retention\nerrors, account/region mismatch and rollback of a bad policy. Acceptance: reviewed\ndry-run against funded test data, no production delete without separately authorized\nconcrete retention scope. A config edit cannot silently era"
+      }
+    },
+    {
+      "id": "H15",
+      "title": "security, chaos and recovery qualification",
+      "prs": [],
+      "contributingPrs": [
+        11
+      ],
+      "dependsOn": [
+        "H5",
+        "H7",
+        "H8",
+        "H9",
+        "H10",
+        "H11",
+        "H12",
+        "H13",
+        "H14"
+      ],
+      "acceptanceCriteria": "all required checks/security findings resolved or explicitly scoped;\nindependent retention/alerting evidence; documented recovery times; known limitations",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 11,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H15 — security, chaos and recovery qualification\n\nExercise source compromise (force push/deletion), collector outage/compromise,\nprovider account failure, wrong/lost key, corruption/rollback, partial inventory,\ncross-tenant access mistakes, disk exhaustion and dependency supply-chain failures.\nReview E2E data flows, scopes, logs and artifact leakage. Perform clean-host per-repo\nand full-account restores, compare exact refs/LFS/files and database consistency.\nMeasure RPO/RTO instead of promising untested service levels. Add regression tests\nonly for meaningful properties and preserve evidence outside the source provider.\n\nAcceptance: all required checks/security findings resolved or explicitly scoped;\nindependent retention/alerting eviden"
+      }
+    },
+    {
+      "id": "H16",
+      "title": "production activation and continuing operations",
+      "prs": [],
+      "contributingPrs": [
+        11
+      ],
+      "dependsOn": [
+        "H15"
+      ],
+      "acceptanceCriteria": "exact deployed commit/tool versions, private inventory, captured\ndata classes, per-destination version/retention evidence, restore report, last/next",
+      "sourceMetadata": {
+        "sourcePlan": "docs/DEVELOPMENT_PLAN.md",
+        "implementedInPr": 11,
+        "productionAcceptanceStillSeparate": true,
+        "description": "## H16 — production activation and continuing operations\n\nEnroll exact owners/data roots, accounts, scopes and retention/budget. Install a\nfixed reviewed release on the authorized independent host. Supply credentials through\nits private secret store. Run initial capture to every required destination, verify\nreal cloud retention and perform clean recovery. Enable the daily timer, independent\nmonitor and offline rotation; verify the next real daily run. Disable the bootstrap\nGitHub schedule when independent deployment is authoritative to avoid duplicate cost.\n\nAcceptance record: exact deployed commit/tool versions, private inventory, captured\ndata classes, per-destination version/retention evidence, restore report, last/next\nrun, monitor owne"
+      }
+    }
+  ],
+  "pullRequests": [
+    {
+      "id": 1,
+      "number": 1,
+      "title": "Capture encrypted public and private GitHub snapshots",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/1",
+      "createdAt": "2026-10-17T03:00:28Z",
+      "updatedAt": "2026-10-17T03:01:41Z",
+      "mergedAt": "2026-10-17T03:01:41Z",
+      "closedAt": "2026-10-17T03:01:41Z",
+      "draft": false
+    },
+    {
+      "id": 2,
+      "number": 2,
+      "title": "Deliver daily encrypted backups to Google Drive and Dropbox",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/2",
+      "createdAt": "2026-10-17T03:03:26Z",
+      "updatedAt": "2026-10-17T03:05:39Z",
+      "mergedAt": "2026-10-17T03:05:38Z",
+      "closedAt": "2026-10-17T03:05:38Z",
+      "draft": false
+    },
+    {
+      "id": 3,
+      "number": 3,
+      "title": "Define resilient backup architecture and full development plan",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/3",
+      "createdAt": "2026-10-17T03:07:50Z",
+      "updatedAt": "2026-10-17T03:10:14Z",
+      "mergedAt": "2026-10-17T03:10:14Z",
+      "closedAt": "2026-10-17T03:10:14Z",
+      "draft": false
+    },
+    {
+      "id": 4,
+      "number": 4,
+      "title": "Add independent backup foundation and verified offline recovery",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/4",
+      "createdAt": "2026-10-17T03:22:06Z",
+      "updatedAt": "2026-10-17T03:23:20Z",
+      "mergedAt": "2026-10-17T03:23:20Z",
+      "closedAt": "2026-10-17T03:23:20Z",
+      "draft": false
+    },
+    {
+      "id": 5,
+      "number": 5,
+      "title": "Complete GitHub authentication, coverage checks and metadata exports",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/5",
+      "createdAt": "2026-10-17T12:06:51Z",
+      "updatedAt": "2026-10-17T12:08:10Z",
+      "mergedAt": "2026-10-17T12:08:10Z",
+      "closedAt": "2026-10-17T12:08:10Z",
+      "draft": false
+    },
+    {
+      "id": 6,
+      "number": 6,
+      "title": "Add native S3/B2 compliance vaults and resumable encrypted chunks",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/6",
+      "createdAt": "2026-10-17T12:16:14Z",
+      "updatedAt": "2026-10-17T12:17:18Z",
+      "mergedAt": "2026-10-17T12:17:17Z",
+      "closedAt": "2026-10-17T12:17:18Z",
+      "draft": false
+    },
+    {
+      "id": 7,
+      "number": 7,
+      "title": "Separate collector and destination agents; sign and independently witness vault versions",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/7",
+      "createdAt": "2026-10-17T12:29:27Z",
+      "updatedAt": "2026-10-17T12:30:20Z",
+      "mergedAt": "2026-10-17T12:30:20Z",
+      "closedAt": "2026-10-17T12:30:20Z",
+      "draft": false
+    },
+    {
+      "id": 8,
+      "number": 8,
+      "title": "Back up SQLite, PostgreSQL and enrolled remote objects/documents consistently",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/8",
+      "createdAt": "2026-10-17T12:35:26Z",
+      "updatedAt": "2026-10-17T12:37:04Z",
+      "mergedAt": "2026-10-17T12:37:04Z",
+      "closedAt": "2026-10-17T12:37:04Z",
+      "draft": false
+    },
+    {
+      "id": 9,
+      "number": 9,
+      "title": "Monitor signed backup freshness, provider diversity and rollback independently",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/9",
+      "createdAt": "2026-10-17T12:40:51Z",
+      "updatedAt": "2026-10-17T12:44:11Z",
+      "mergedAt": "2026-10-17T12:44:11Z",
+      "closedAt": "2026-10-17T12:44:11Z",
+      "draft": false
+    },
+    {
+      "id": 10,
+      "number": 10,
+      "title": "Export signed offline recovery kits and plan retention without deletion privileges",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/10",
+      "createdAt": "2026-10-17T12:51:22Z",
+      "updatedAt": "2026-10-17T12:57:39Z",
+      "mergedAt": "2026-10-17T12:57:39Z",
+      "closedAt": "2026-10-17T12:57:39Z",
+      "draft": false
+    },
+    {
+      "id": 11,
+      "number": 11,
+      "title": "Qualify recovery and complete isolated feed, release and production activation tooling",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/11",
+      "createdAt": "2026-10-17T13:17:43Z",
+      "updatedAt": "2026-10-17T13:22:10Z",
+      "mergedAt": "2026-10-17T13:22:10Z",
+      "closedAt": "2026-10-17T13:22:10Z",
+      "draft": false
+    },
+    {
+      "id": 12,
+      "number": 12,
+      "title": "Finish activation handoff and record passing qualification",
+      "state": "closed",
+      "url": "https://github.com/neophilism/RepoSafe/pull/12",
+      "createdAt": "2026-10-17T13:34:18Z",
+      "updatedAt": "2026-10-17T13:41:43Z",
+      "mergedAt": "2026-10-17T13:41:43Z",
+      "closedAt": "2026-10-17T13:41:43Z",
+      "draft": false
+    }
+  ]
+}
