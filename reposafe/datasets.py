@@ -74,7 +74,9 @@ def postgres_environment(source):
         parser.read_string(read_regular(service_file, 1024 ** 2, private=True).decode())
         service = parser[source.service]
         host = service.get("host", "")
-        if not host or (not host.startswith("/") and service.get("sslmode") != "verify-full"):
+        hosts = host.split(",")
+        socket_only = all(item.startswith("/") for item in hosts) and not service.get("hostaddr", "")
+        if not host or any(not item for item in hosts) or (not socket_only and service.get("sslmode") != "verify-full"):
             raise ValueError
         # Avoid shell/command credential helpers added by newer libpq versions.
         if any("command" in key or key == "service" for key in service):
@@ -124,6 +126,9 @@ def postgres_export(source, output, *, runner=command):
     toc = run(["pg_restore", "--list", dump], maximum_output_bytes=16 * 1024 ** 2)
     if not toc.startswith(b";") or dump.stat().st_size == 0:
         raise BackupError("PostgreSQL custom dump has no valid archive catalog")
+    # Listing checks only the archive catalog. Read/decompress every selected
+    # data block to a sink without a database connection before claiming capture.
+    run(["pg_restore", "--file", os.devnull, "--no-owner", "--no-acl", dump])
     (output / "archive-list.txt").write_bytes(toc)
     (output / "archive-list.txt").chmod(0o600)
     if source.include_roles:
@@ -216,3 +221,4 @@ def export_dataset(source, destination):
         if isinstance(error, BackupError):
             raise
         raise BackupError("dataset export unavailable, inconsistent or invalid") from None
+

@@ -41,6 +41,14 @@ class PostgresIntegrationTests(unittest.TestCase):
                     result = export_dataset(source, root / "export")
                     self.assertTrue(result["database"]["extensions"])
                     self.assertTrue((root / "export/roles.json").is_file())
+                    # A valid catalog does not prove every compressed data block
+                    # survived. Verify a deliberately truncated copy offline;
+                    # never connect the corrupt archive to any database.
+                    corrupt = root / "truncated.dump"
+                    archive = (root / "export/database.dump").read_bytes()
+                    corrupt.write_bytes(archive[:len(archive) // 2])
+                    with self.assertRaises(BackupError):
+                        command(["pg_restore", "--file", os.devnull, "--no-owner", "--no-acl", corrupt], env=env)
                     command(["psql", "-X", "-v", "ON_ERROR_STOP=1", "-c", "CREATE DATABASE recovered"], env=admin)
                     recovery = {**admin, "PGSERVICE": "restore"}
                     command(["pg_restore", "--exit-on-error", "--single-transaction", "--no-owner", "--no-acl",
@@ -52,3 +60,4 @@ class PostgresIntegrationTests(unittest.TestCase):
                         command(["psql", "-X", "-v", "ON_ERROR_STOP=1", "-c", "INSERT INTO records VALUES (1, 'duplicate')"], env=recovery)
             finally:
                 command(["pg_ctl", "-D", data, "-m", "immediate", "-w", "stop"])
+

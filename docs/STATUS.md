@@ -33,3 +33,12 @@ No real provider WORM/permission enforcement, future daily run, physical disconn
 or full-account production recovery time is claimed. ACTIVATION.md gives concrete
 inputs, role/feed/timer setup and a signed owner acceptance record with every check
 initially pending. Do not put real acceptance evidence or credentials in this repo.
+
+## H10 follow-up under development — November 1, 2026
+
+Read-through PostgreSQL archive validation and strict socket/network TLS enrollment
+checks have new failure and compatibility fixtures. The isolated PostgreSQL CI test
+now also checks corruption rejection. Local tests use only synthetic credentials and
+temporary data; age/rclone/PostgreSQL integrations require tools not installed in
+the local runtime and remain skipped there. Record actual current-head CI before
+acceptance; this entry does not imply a new merged release or production activation.
