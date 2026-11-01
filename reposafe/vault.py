@@ -141,7 +141,7 @@ class ObjectVault:
         if not isinstance(version, str) or not version or version == "null":
             raise BackupError("vault returned no durable object version ID")
         response = self.client.get_object(Bucket=self.destination.bucket, Key=key, VersionId=version, **self.owner)
-        if response.get("VersionId", version) != version or response.get("ContentLength") != expected_size:
+        if response.get("VersionId") != version or response.get("ContentLength") != expected_size:
             response["Body"].close()
             raise BackupError("vault read-back version/size mismatch")
         body, digest, total = response["Body"], hashlib.sha256(), 0
@@ -280,7 +280,7 @@ class ObjectVault:
                     raise BackupError("invalid catalog file or version")
                 seen.add(name)
                 response = self.client.get_object(Bucket=self.destination.bucket, Key=key, VersionId=version, **self.owner)
-                if response.get("VersionId", version) != version:
+                if response.get("VersionId") != version:
                     response["Body"].close()
                     raise BackupError("vault returned the wrong recovery version")
                 body, total, digest = response["Body"], 0, hashlib.sha256()
@@ -306,3 +306,4 @@ class ObjectVault:
             if isinstance(error, BackupError):
                 raise
             raise BackupError("version-specific vault recovery failed") from None
+

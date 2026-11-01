@@ -5,7 +5,7 @@
 | Daily encrypted GitHub → Drive/Dropbox | PRs #1–#2 merged | Real local age/rclone checks; actual OAuth/activation pending |
 | Architecture/full plan and independent runner foundation | PRs #3–#4 merged | Git/file recovery, durable coverage state and safe extraction |
 | App inventory, exact refs/LFS, metadata/assets | PR #5 merged | Source fixtures and live public recovery smoke; private App grants pending |
-| Native S3/B2 compliance versions, chunks and resume | PR #6 merged | Native failure/retention/exact-version fixtures and SDK contract; funded cloud enforcement pending |
+| Native S3/B2 compliance versions, chunks and resume | PR #6 merged; H6 response-version follow-up in progress | Exact returned-version checks and missing/latest-pointer failure fixtures; funded cloud enforcement remains pending |
 | Separate signed collector/writers and read-only witness | PR #7 merged | Signature/rollback/native read-back and real rclone agent fixtures; separate-host deployment pending |
 | SQLite/PostgreSQL and remote objects/documents | PR #8 merged | 79-test CI included real isolated PostgreSQL export/restore; actual datasets not enrolled |
 | Independent signed-evidence monitor/alerts | PR #9 merged | Freshness/gap/rollback/copy-policy/offline/webhook fixtures; real endpoint/recipient pending |
@@ -33,3 +33,4 @@ No real provider WORM/permission enforcement, future daily run, physical disconn
 or full-account production recovery time is claimed. ACTIVATION.md gives concrete
 inputs, role/feed/timer setup and a signed owner acceptance record with every check
 initially pending. Do not put real acceptance evidence or credentials in this repo.
+
