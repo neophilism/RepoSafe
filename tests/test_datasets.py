@@ -88,6 +88,70 @@ class DatasetTests(unittest.TestCase):
         with patch.dict(os.environ, {"REPOSAFE_DATABASE_SERVICE_FILE": str(path)}), self.assertRaises(BackupError):
             postgres_environment(source)
 
+    def test_postgres_socket_spelling_cannot_exempt_a_network_destination_from_tls(self):
+        from reposafe.datasets import postgres_environment
+        source = Dataset("db", "postgres", service="backup", credential_prefix="REPOSAFE_DATABASE")
+        for settings in ("host=/local/socket,network.example\nsslmode=disable\n",
+                         "host=/local/socket\nhostaddr=192.0.2.1\nsslmode=disable\n",
+                         "host=/local/socket,\nsslmode=disable\n"):
+            with self.subTest(settings=settings):
+                path = self.service()
+                path.write_text("[backup]\n" + settings)
+                with patch.dict(os.environ, {"REPOSAFE_DATABASE_SERVICE_FILE": str(path)}), self.assertRaises(BackupError):
+                    postgres_environment(source)
+
+    def test_postgres_archive_data_must_be_readable_not_just_its_catalog(self):
+        source = Dataset("db", "postgres", service="backup", credential_prefix="REPOSAFE_DATABASE")
+        called = []
+        def runner(args, **kwargs):
+            called.append(args)
+            if args[0] == "psql":
+                return b'{"server_version_num":170000,"database":"fixture","extensions":[]}'
+            if args[0] == "pg_dump" and "--version" in args:
+                return b"pg_dump (PostgreSQL) 17.6"
+            if args[0] == "pg_dump":
+                kwargs["output_file"].write_bytes(b"PGDMP truncated data fixture")
+                return b""
+            if "--list" in args:
+                return b"; valid catalog with unreadable data section"
+            raise BackupError("archive data is truncated")
+        with patch.dict(os.environ, {"REPOSAFE_DATABASE_SERVICE_FILE": str(self.service())}):
+            with patch("reposafe.datasets.postgres_export", side_effect=lambda item, out: postgres_export(item, out, runner=runner)):
+                with self.assertRaisesRegex(BackupError, "truncated"):
+                    export_dataset(source, self.root / "truncated")
+        self.assertFalse((self.root / "truncated").exists())
+        validation = [args for args in called if args[0] == "pg_restore" and "--list" not in args]
+        self.assertEqual(1, len(validation))
+        self.assertNotIn("--dbname", validation[0])
+
+    def test_postgres_old_client_or_source_auth_failure_cannot_produce_a_dump(self):
+        source = Dataset("db", "postgres", service="backup", credential_prefix="REPOSAFE_DATABASE")
+        for auth_failure in (False, True):
+            calls = []
+            def runner(args, **kwargs):
+                calls.append(args)
+                if args[0] == "psql":
+                    if auth_failure:
+                        raise BackupError("source authentication unavailable")
+                    return b'{"server_version_num":170000,"database":"fixture","extensions":[]}'
+                if args == ["pg_dump", "--version"]:
+                    return b"pg_dump (PostgreSQL) 16.9"
+                self.fail("dump must not start after source/client preflight failure")
+            with self.subTest(auth_failure=auth_failure), patch.dict(os.environ, {"REPOSAFE_DATABASE_SERVICE_FILE": str(self.service())}):
+                with patch("reposafe.datasets.postgres_export", side_effect=lambda item, out: postgres_export(item, out, runner=runner)):
+                    with self.assertRaises(BackupError):
+                        export_dataset(source, self.root / "failed-preflight")
+                self.assertFalse((self.root / "failed-preflight").exists())
+
+    def test_postgres_network_with_verified_tls_and_socket_only_settings_remain_supported(self):
+        from reposafe.datasets import postgres_environment
+        source = Dataset("db", "postgres", service="backup", credential_prefix="REPOSAFE_DATABASE")
+        for host, tls in (("network.example", "verify-full"), ("/socket/one,/socket/two", "disable")):
+            with self.subTest(host=host):
+                path = self.service(host=host, sslmode=tls)
+                with patch.dict(os.environ, {"REPOSAFE_DATABASE_SERVICE_FILE": str(path)}):
+                    self.assertEqual("backup", postgres_environment(source)["PGSERVICE"])
+
     def test_remote_inventory_rejects_traversal_and_duplicate_names(self):
         for listing in ([{"Path": "../private", "Size": 1, "IsDir": False}],
                         [{"Path": "a", "Size": 1, "IsDir": False}] * 2):
@@ -149,3 +213,4 @@ class CommandBudgetTests(unittest.TestCase):
     def test_deadline_kills_children_holding_output_pipes(self):
         with self.assertRaisesRegex(BackupError, "deadline"):
             command(["python3", "-c", "import subprocess;subprocess.Popen(['python3','-c','import time;time.sleep(20)'])"], timeout=0.1)
+

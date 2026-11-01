@@ -129,3 +129,22 @@ References: [SQLite backup API](https://www.sqlite.org/backup.html),
 [PostgreSQL pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html),
 [libpq service files](https://www.postgresql.org/docs/current/libpq-pgservice.html),
 [rclone document exports](https://rclone.org/drive/#import-export-of-google-documents).
+
+## H10 validation follow-up — November 1, 2026
+
+Socket-only TLS exemption requires every configured host to be an explicit Unix
+socket and no `hostaddr` override. Mixed socket/network lists require verify-full;
+empty host entries are rejected rather than falling back to ambient defaults.
+
+Custom archives are now read/decompressed with `pg_restore --file` into the local
+null sink after their catalog is checked. That step has the same overall export
+deadline, never names a target database and executes no SQL. Catalog readability
+alone is insufficient; a data-block error fails capture and removes partial staging.
+The extra read consumes local I/O/time within the configured export budget.
+
+Failure fixtures cover truncated data after a readable catalog, old client/source
+authentication preflight, mixed-host/hostaddr TLS handling and preserved valid socket
+and verified-TLS settings. CI's isolated PostgreSQL test also rejects a truncated
+archive before restoring the intact copy into a new disposable database. Actual
+enrolled data, extension compatibility and application semantics still require the
+operator's separate isolated restore acceptance; no production restore is performed.
