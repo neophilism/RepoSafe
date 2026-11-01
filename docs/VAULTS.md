@@ -90,3 +90,18 @@ chunk; for v2 it continues to anchor the single ciphertext file. Receipts are ca
 at 8 MiB and 10,000 chunks. Source/output space checks and the global plaintext byte
 budget fail before publication; dedicated host disk quotas still protect an individual
 Git clone from exhausting its volume. No cross-run deduplication/pruning is introduced.
+
+## H6 version-response follow-up — November 1, 2026
+
+Delivery read-back and recovery now require the provider response to explicitly
+return the requested `VersionId`. Missing metadata is a failure, even if the bytes
+match; the requested version is no longer substituted for an absent response ID.
+Mismatch bodies are closed, no completion receipt follows a failed payload check,
+and failed recovery removes only its new partial output while preserving stored data.
+
+Failure fixtures cover omitted/mismatched version responses. A version-aware fixture
+also recovers every cataloged object after latest pointers become unavailable, with
+no writes or latest-object fallback. This is software evidence only. It does not
+prove a real AWS delete denial, COMPLIANCE retention or account isolation. The funded
+test-account drill and privately retained cloud permission/retention evidence remain
+separate H6 acceptance requirements.
