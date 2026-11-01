@@ -49,18 +49,29 @@ class InstallationAuth:
             raise BackupError("GitHub App private key must be a private regular file") from None
 
     def installation_token(self, installation):
-        identifier = installation["id"]
+        identifier = installation.get("id") if isinstance(installation, dict) else None
+        if type(identifier) is not int or identifier < 1:
+            raise BackupError("invalid GitHub App installation identifier")
         cached = self.cached.get(identifier)
         if cached and cached[1] > self.clock() + 120:
             return cached[0]
+        # Failed refresh/revoked grants must not leave an old token available.
+        self.cached.pop(identifier, None)
         result = self.app_client().request(f"/app/installations/{identifier}/access_tokens", method="POST",
                                           data={"permissions": self.permissions})
         try:
             token = result["token"]
-            expiry = datetime.fromisoformat(result["expires_at"].replace("Z", "+00:00")).timestamp()
-            if not token or expiry <= self.clock() + 120 or any(v != "read" for v in result["permissions"].values()):
+            expires = datetime.fromisoformat(result["expires_at"].replace("Z", "+00:00"))
+            if expires.tzinfo is None:
                 raise ValueError
-        except (KeyError, ValueError, TypeError, AttributeError):
+            expiry = expires.timestamp()
+            now = self.clock()
+            if (not isinstance(token, str) or not 1 <= len(token) <= 4096 or
+                any(ord(char) < 33 or ord(char) > 126 for char in token) or
+                not now + 120 < expiry <= now + 3720 or
+                result["permissions"] != self.permissions):
+                raise ValueError
+        except (KeyError, ValueError, TypeError, AttributeError, OverflowError, OSError):
             raise BackupError("GitHub App returned invalid or excessive token privileges") from None
         self.cached[identifier] = (token, expiry)
         return token
@@ -74,6 +85,8 @@ class InstallationAuth:
                 if owner not in owners:
                     continue
                 if type(installation["id"]) is not int or installation["id"] < 1 or installation.get("suspended_at"):
+                    raise ValueError
+                if installation.get("repository_selection") not in ("all", "selected"):
                     raise ValueError
                 if installation.get("repository_selection") != "all" and not config.allow_selected_repositories:
                     raise BackupError("selected-repository installation cannot establish owner-wide coverage")
@@ -95,6 +108,18 @@ class InstallationAuth:
         except (KeyError, AttributeError):
             raise BackupError("repository has no discovered GitHub App installation") from None
 
+    def coverage_evidence(self):
+        """Private encrypted-payload evidence, never tokens or signing keys."""
+        return {
+            "authentication": "github_app_installation",
+            "requested_permissions": dict(self.permissions),
+            "installations": [{"owner": owner, "installation_id": installation["id"],
+                               "repository_selection": installation["repository_selection"]}
+                              for owner, installation in sorted(self.installations.items())],
+            "owner_inventory_comparison": "not_performed",
+            "organization_sso_validation": "not_independently_verified",
+        }
+
 
 def client_from_environment(config):
     app_id = os.environ.get("GITHUB_APP_ID")
@@ -109,3 +134,4 @@ def client_from_environment(config):
     if not key:
         raise BackupError("GITHUB_APP_PRIVATE_KEY_FILE is required for App authentication")
     return GitHub("installation-auth", auth=InstallationAuth(app_id, key, permissions))
+

@@ -36,6 +36,13 @@ class GitHub:
     def for_repository(self, repo):
         return GitHub(self.auth.token_for(repo), sleep=self.sleep) if self.auth else self
 
+    def coverage_evidence(self):
+        if self.auth:
+            return self.auth.coverage_evidence()
+        return {"authentication": "token", "repository_selection": "unknown",
+                "owner_inventory_comparison": "not_performed",
+                "organization_sso_validation": "not_independently_verified"}
+
     def request(self, path, *, method="GET", data=None):
         if not path.startswith("/") or path.startswith("//"):
             raise BackupError("invalid GitHub API path")
@@ -116,3 +123,4 @@ class GitHub:
         if len(repositories) < config.minimum_repositories or any(r.lower() not in names for r in config.required_repositories):
             raise BackupError("repository coverage guard failed; check token permissions")
         return sorted(repositories.values(), key=lambda r: r["id"])
+
