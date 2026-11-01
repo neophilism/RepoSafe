@@ -56,3 +56,25 @@ Missing expected/observed IDs fail full coverage. Explicit retirement changes th
 expected source inventory without deleting historical backups. Keep the registry
 and digest pin outside the mutable source account. Signed witnessing adds a
 separate provenance layer; local state alone is not an independent witness.
+
+## H2 source credential validation follow-up — November 1, 2026
+
+Minted installation tokens must be printable non-whitespace strings, carry exactly
+the requested read-only grants, and have a timezone-qualified expiry more than two
+minutes and no more than 62 minutes ahead of the collector clock. The upper bound
+allows a small skew around the one-hour installation-token lifetime; a bad collector
+clock must be investigated rather than bypassing validation. Refresh failure removes
+the near-expiry cached token; revoked grants cannot silently fall back to that token.
+Unknown installation IDs or selection metadata fail before token use.
+
+The encrypted payload manifest now includes `source_access` with authentication
+kind, discovered owner/installation IDs, all/selected grant metadata and requested
+read permissions. This private evidence excludes keys, tokens, expiry payloads and
+unneeded response fields. Token authentication records selection as unknown. Public
+receipts continue to expose aggregate counts only. The evidence explicitly records
+owner-admin inventory comparison as not performed and organization/SSO validation
+as not independently verified: discoverability by a token does not prove total scope.
+
+These software tests do not enroll a real App or compare a private owner inventory.
+Complete H2 acceptance still requires that private comparison and independent
+observation of failed coverage alerts using separately configured operator access.

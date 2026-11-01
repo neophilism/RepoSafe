@@ -120,6 +120,8 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
             "sources": sources, "missing_repository_ids": missing,
             "metadata_groups": list(config.metadata), "wiki_requested": config.wiki,
             "selected_repository_grants_allowed": config.allow_selected_repositories,
+            "source_access": (github.coverage_evidence() if hasattr(github, "coverage_evidence") else
+                              {"authentication": "unspecified", "owner_inventory_comparison": "not_performed"}),
             "coverage": "Git mirrors, LFS when enabled, repository metadata; see docs/COVERAGE.md",
         })
         content_inventory(payload)
@@ -155,3 +157,4 @@ def capture(config, github, output, *, mirror_fn=mirror, expected_repository_ids
                 ciphertext.unlink(missing_ok=True)
             raise
     return Capture(destination, run_id, complete, len(inventory), failed, repository_ids, len(missing))
+
